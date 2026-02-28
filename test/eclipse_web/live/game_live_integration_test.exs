@@ -63,7 +63,10 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
     scanner = Keyword.get(opts, :scanner, %Scanner{position: 0.0, speed: 0.0625})
     score = Keyword.get(opts, :score, 0)
     level = Keyword.get(opts, :level, 1)
-    lines_cleared = Keyword.get(opts, :lines_cleared, 0)
+    total_squares_cleared = Keyword.get(opts, :total_squares_cleared, 0)
+    combo_multiplier = Keyword.get(opts, :combo_multiplier, 1)
+    combo_streak = Keyword.get(opts, :combo_streak, 0)
+    sweep_cleared = Keyword.get(opts, :sweep_cleared, 0)
     gravity_interval = Keyword.get(opts, :gravity_interval, 1000)
     scanner_interval = Keyword.get(opts, :scanner_interval, 50)
 
@@ -81,7 +84,10 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
       scanner: scanner,
       score: score,
       level: level,
-      lines_cleared: lines_cleared,
+      total_squares_cleared: total_squares_cleared,
+      combo_multiplier: combo_multiplier,
+      combo_streak: combo_streak,
+      sweep_cleared: sweep_cleared,
       phase: :playing,
       gravity_interval: gravity_interval,
       scanner_interval: scanner_interval
@@ -372,6 +378,9 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
         |> Board.put(0, 9, {:marked, :dark})
         |> Board.put(1, 8, {:marked, :dark})
         |> Board.put(1, 9, {:marked, :dark})
+        # Keep non-marked tiles so board isn't empty after clear (avoids 10K bonus)
+        |> Board.put(10, 9, :light)
+        |> Board.put(12, 9, :dark)
 
       state =
         build_playing_state(
@@ -389,7 +398,7 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
 
       game = game_state(view)
 
-      # 4 marked tiles cleared * 10 * level 1 = 40 points
+      # 4 marked tiles cleared * 10 * combo_multiplier 1 = 40 points
       assert game.score == 40
     end
 
@@ -882,11 +891,11 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
   # ── Level Up ────────────────────────────────────────────────────────
 
   describe "level progression" do
-    test "reaching 50 lines cleared triggers level up", %{conn: conn} do
+    test "reaching 50 squares cleared triggers level up", %{conn: conn} do
       view = start_game(conn)
 
       # Set up state just below the level-up threshold
-      # 4 marked tiles + lines_cleared 46 = 50 after clear
+      # 4 marked tiles + total_squares_cleared 46 = 50 after clear
       board =
         Board.new()
         |> Board.put(0, 8, {:marked, :dark})
@@ -898,7 +907,7 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
         build_playing_state(
           board: board,
           scanner: %Scanner{position: 0.0, speed: 2.0},
-          lines_cleared: 46,
+          total_squares_cleared: 46,
           level: 1,
           gravity_interval: 1000,
           piece: %Piece{cells: {:dark, :light, :light, :dark}, col: 11, row: 0}
@@ -911,7 +920,7 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
 
       game = game_state(view)
 
-      assert game.lines_cleared == 50
+      assert game.total_squares_cleared == 50
       assert game.level == 2
       assert game.gravity_interval == 900
     end
@@ -930,7 +939,7 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
         build_playing_state(
           board: board,
           scanner: %Scanner{position: 0.0, speed: 2.0},
-          lines_cleared: 96,
+          total_squares_cleared: 96,
           level: 2,
           gravity_interval: 900,
           piece: %Piece{cells: {:dark, :light, :light, :dark}, col: 11, row: 0}
@@ -943,7 +952,7 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
 
       game = game_state(view)
 
-      assert game.lines_cleared == 100
+      assert game.total_squares_cleared == 100
       assert game.level == 3
       assert game.gravity_interval == 800
     end
@@ -962,7 +971,7 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
         build_playing_state(
           board: board,
           scanner: %Scanner{position: 0.0, speed: 2.0},
-          lines_cleared: 496,
+          total_squares_cleared: 496,
           level: 10,
           gravity_interval: 100,
           piece: %Piece{cells: {:dark, :light, :light, :dark}, col: 11, row: 0}
@@ -984,7 +993,7 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
   # ── Score Accumulation ──────────────────────────────────────────────
 
   describe "score calculation" do
-    test "score scales with level", %{conn: conn} do
+    test "score uses combo multiplier", %{conn: conn} do
       view = start_game(conn)
 
       board =
@@ -993,6 +1002,9 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
         |> Board.put(1, 8, {:marked, :dark})
         |> Board.put(0, 9, {:marked, :dark})
         |> Board.put(1, 9, {:marked, :dark})
+        # Keep non-marked tiles so board isn't empty (avoids 10K bonus)
+        |> Board.put(10, 9, :light)
+        |> Board.put(12, 9, :dark)
 
       state =
         build_playing_state(
@@ -1000,6 +1012,7 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
           scanner: %Scanner{position: 0.0, speed: 2.0},
           score: 0,
           level: 3,
+          combo_multiplier: 2,
           piece: %Piece{cells: {:dark, :light, :light, :dark}, col: 11, row: 0}
         )
 
@@ -1010,8 +1023,8 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
 
       game = game_state(view)
 
-      # 4 tiles * 10 * level 3 = 120
-      assert game.score == 120
+      # 4 tiles * 10 * combo_multiplier 2 = 80
+      assert game.score == 80
     end
 
     test "score accumulates across multiple clears", %{conn: conn} do
@@ -1023,6 +1036,9 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
         |> Board.put(1, 8, {:marked, :dark})
         |> Board.put(0, 9, {:marked, :dark})
         |> Board.put(1, 9, {:marked, :dark})
+        # Keep non-marked tiles to avoid bonuses
+        |> Board.put(10, 9, :light)
+        |> Board.put(12, 9, :dark)
 
       state =
         build_playing_state(

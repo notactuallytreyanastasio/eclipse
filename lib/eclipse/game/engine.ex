@@ -84,25 +84,35 @@ defmodule Eclipse.Game.Engine do
 
   @spec scanner_tick(GameState.t()) :: GameState.t()
   def scanner_tick(%GameState{phase: :playing, scanner: scanner, board: board} = state) do
-    {new_scanner, from_col, to_col} = Scanner.advance(scanner, board.width)
+    {new_scanner, from_col, to_col, wrapped?} = Scanner.advance(scanner, board.width)
 
     if from_col >= 0 and to_col >= 0 do
-      {cleared_board, cleared_count} = Board.clear_marked_in_range(board, from_col, to_col)
+      {settled_board, cleared_count} = clear_and_settle(board, from_col, to_col, state)
 
-      settled_board =
-        cleared_board
-        |> Board.apply_gravity()
-        |> Board.find_matches()
+      score_bonus = cleared_count * 10 * state.combo_multiplier
 
-      score_bonus = cleared_count * 10 * state.level
+      # Apply bonuses
+      score_bonus =
+        cond do
+          Board.empty?(settled_board) ->
+            score_bonus + 10_000
+
+          Board.single_color?(settled_board) ->
+            score_bonus + 1_000
+
+          true ->
+            score_bonus
+        end
 
       %{
         state
         | board: settled_board,
           scanner: new_scanner,
           score: state.score + score_bonus,
-          lines_cleared: state.lines_cleared + cleared_count
+          total_squares_cleared: state.total_squares_cleared + cleared_count,
+          sweep_cleared: state.sweep_cleared + cleared_count
       }
+      |> evaluate_combo(wrapped?)
       |> maybe_level_up()
     else
       %{state | scanner: new_scanner}
@@ -110,6 +120,33 @@ defmodule Eclipse.Game.Engine do
   end
 
   def scanner_tick(state), do: state
+
+  defp clear_and_settle(board, from_col, to_col, _state) do
+    board
+    |> Board.clear_marked_in_range(from_col, to_col)
+    |> settle_after_clear()
+  end
+
+  defp settle_after_clear({cleared_board, cleared_count}) do
+    settled_board =
+      cleared_board
+      |> Board.apply_gravity()
+      |> Board.find_matches()
+
+    {settled_board, cleared_count}
+  end
+
+  defp evaluate_combo(%{sweep_cleared: cleared} = state, true) when cleared >= 4 do
+    new_streak = state.combo_streak + 1
+    new_multiplier = min(4, new_streak + 1)
+    %{state | combo_streak: new_streak, combo_multiplier: new_multiplier, sweep_cleared: 0}
+  end
+
+  defp evaluate_combo(state, true) do
+    %{state | combo_streak: 0, combo_multiplier: 1, sweep_cleared: 0}
+  end
+
+  defp evaluate_combo(state, false), do: state
 
   # --- Internal ---
 
@@ -160,7 +197,7 @@ defmodule Eclipse.Game.Engine do
     end
   end
 
-  defp maybe_level_up(%GameState{lines_cleared: cleared, level: level} = state) do
+  defp maybe_level_up(%GameState{total_squares_cleared: cleared, level: level} = state) do
     new_level = div(cleared, 50) + 1
 
     if new_level > level do
