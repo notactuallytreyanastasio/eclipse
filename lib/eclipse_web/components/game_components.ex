@@ -10,12 +10,16 @@ defmodule EclipseWeb.GameComponents do
 
   attr :score, :integer, required: true
   attr :level, :integer, required: true
+  attr :total_squares_cleared, :integer, required: true
 
   def game_hud(assigns) do
+    assigns = assign(assigns, :progress, rem(assigns.total_squares_cleared, 50))
+
     ~H"""
     <div id="game-hud" class="flex gap-8 eclipse-text text-sm">
       <div>SCORE {String.pad_leading(Integer.to_string(@score), 8, "0")}</div>
       <div>LEVEL {String.pad_leading(Integer.to_string(@level), 2, "0")}</div>
+      <div>PROGRESS {String.pad_leading(Integer.to_string(@progress), 2, "0")}/50</div>
     </div>
     """
   end

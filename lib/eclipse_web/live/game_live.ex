@@ -151,7 +151,11 @@ defmodule EclipseWeb.GameLive do
 
         <h1 class="eclipse-text text-2xl tracking-[0.3em]">ECLIPSE</h1>
 
-        <.game_hud score={@game.score} level={@game.level} />
+        <.game_hud
+          score={@game.score}
+          level={@game.level}
+          total_squares_cleared={@game.total_squares_cleared}
+        />
 
         <div class="flex gap-6 items-start">
           <.game_board
