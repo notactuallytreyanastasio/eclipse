@@ -1,5 +1,13 @@
 [
   {
+    "hash": "d1600f472fc16a7b44d9b03f3f673c0407a5cb95",
+    "short_hash": "d1600f4",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T00:44:24-05:00",
+    "message": "fix tile contrast, gravity bug, remove Scanner.new OO pattern\n\n- Distinct tile colors: dark (#0f380f), light (lime #b8d840),\n  marked-dark (sage glow), marked-light (pure white)\n- Fix gravity bug: tiles now fall on every scanner column crossing,\n  not just when marked tiles are cleared\n- Remove Scanner.new/1 — use %Scanner{} struct construction directly\n- Add /work transaction workflow to CLAUDE.md\n- Add Elixir style rule: no OO-style .new() constructors\n- Update deciduous graph (77 nodes, 83 edges)\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 14
+  },
+  {
     "hash": "fb4292439b67f1ce708d638894c8418a483ffde1",
     "short_hash": "fb42924",
     "author": "Robert Grayson",
