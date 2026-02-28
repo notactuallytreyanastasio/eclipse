@@ -1,0 +1,15 @@
+FROM rust:slim-bookworm AS builder
+
+RUN cargo install deciduous
+
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libssl3 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /usr/local/cargo/bin/deciduous /usr/local/bin/deciduous
+
+WORKDIR /data
+
+CMD ["deciduous", "serve", "-p", "3000"]

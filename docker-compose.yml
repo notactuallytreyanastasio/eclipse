@@ -15,17 +15,49 @@ services:
       retries: 5
 
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     ports:
       - "${PORT:-4000}:4000"
     environment:
-      DATABASE_URL: ecto://postgres:postgres@db/illuminates_dev
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-J3Ghx7LcXm9y4kR1vTn2bQ8pWs5dFe0iAoUz6jMhNgKt3rYqVxCf4wDlPmSaEb}
-      PHX_HOST: ${PHX_HOST:-localhost}
+      DB_HOSTNAME: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: illuminates_dev
+      PHX_HOST: localhost
       PORT: "4000"
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./lib
+          target: /app/lib
+        - action: sync
+          path: ./assets
+          target: /app/assets
+        - action: sync
+          path: ./priv
+          target: /app/priv
+        - action: sync
+          path: ./config
+          target: /app/config
+        - action: sync
+          path: ./test
+          target: /app/test
+
+  graph:
+    build:
+      context: .
+      dockerfile: Dockerfile.graph
+    volumes:
+      - ./.deciduous:/data/.deciduous
+    working_dir: /data
+    ports:
+      - "${GRAPH_PORT:-3000}:3000"
     restart: unless-stopped
 
 volumes:

@@ -1,0 +1,20 @@
+FROM hexpm/elixir:1.19-erlang-28.1-debian-trixie-20260223
+
+RUN apt-get update -y && apt-get install -y build-essential git curl inotify-tools \
+    && apt-get clean && rm -f /var/lib/apt/lists/*_*
+
+WORKDIR /app
+
+RUN mix local.hex --force && mix local.rebar --force
+
+ENV MIX_ENV=dev
+
+COPY mix.exs mix.lock ./
+RUN mix deps.get
+
+COPY config config
+RUN mix deps.compile
+
+RUN mix tailwind.install --if-missing && mix esbuild.install --if-missing
+
+CMD mix setup && mix phx.server

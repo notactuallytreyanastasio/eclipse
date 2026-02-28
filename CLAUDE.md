@@ -1,5 +1,25 @@
 # Project Instructions
 
+## Docker Dev Workflow
+
+The app runs in Docker with hot reload via `docker compose watch` (file sync with inotify).
+
+**Starting the dev environment:**
+1. `make up` — build and start containers (app + postgres)
+2. `make watch` — start file sync for hot reload (run in a separate terminal or background)
+3. `make setup` — create database and run migrations (first time only)
+
+**Why `make watch` is needed:** On macOS, Docker volume mounts don't propagate filesystem events (inotify) to the container. `docker compose watch` uses the `develop.watch` config to sync files into the container, which triggers proper inotify events that Phoenix live reload detects. Without it, code and CSS changes won't hot-reload.
+
+**When using Claude subagents:** Always run `make watch` as a background Bash task before doing dev work. The `/monitor` skill should ensure watch is running. If changes aren't reflecting in the browser, check that `docker compose watch` is active.
+
+**Key make targets:**
+- `make up` — start containers
+- `make watch` — file sync for hot reload (blocking, run in background)
+- `make down` — stop everything
+- `make logs` — tail container logs
+- `make graph` — start deciduous graph viewer
+
 ## Decision Graph Workflow
 
 **THIS IS MANDATORY. Log decisions IN REAL-TIME, not retroactively.**
