@@ -269,6 +269,24 @@
   50% { opacity: 0; }
 }
 
+body:has(#eclipse-game) {
+  background: var(--gb-lightest);
+  margin: 0;
+}
+
+body:has(#eclipse-game) header.navbar {
+  display: none;
+}
+
+body:has(#eclipse-game) main {
+  padding: 0;
+  max-width: none;
+}
+
+body:has(#eclipse-game) main > div {
+  max-width: none;
+}
+
 #eclipse-game {
   background: var(--gb-lightest);
   min-height: 100vh;
