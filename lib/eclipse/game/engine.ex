@@ -135,6 +135,7 @@ defmodule Eclipse.Game.Engine do
     new_board =
       board
       |> Board.place_piece(piece)
+      |> Board.apply_gravity()
       |> Board.find_matches()
 
     if Board.topped_out?(new_board) do
@@ -145,8 +146,7 @@ defmodule Eclipse.Game.Engine do
     end
   end
 
-  defp pop_queue(queue) do
-    [next | rest] = queue
+  defp pop_queue([next | rest]) do
     {next, rest ++ [Piece.random()]}
   end
 

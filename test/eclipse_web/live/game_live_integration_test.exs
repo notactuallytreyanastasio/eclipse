@@ -30,11 +30,29 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
 
   defp inject_game_state(view, %GameState{} = game) do
     :sys.replace_state(view.pid, fn state ->
-      put_in(state, [Access.key(:socket), Access.key(:assigns), :game], game)
+      # Cancel any pending timers to prevent races
+      assigns = get_in(state, [Access.key(:socket), Access.key(:assigns)])
+
+      if assigns[:gravity_ref], do: Process.cancel_timer(assigns.gravity_ref)
+      if assigns[:scanner_ref], do: Process.cancel_timer(assigns.scanner_ref)
+
+      state
+      |> put_in([Access.key(:socket), Access.key(:assigns), :game], game)
+      |> put_in([Access.key(:socket), Access.key(:assigns), :gravity_ref], nil)
+      |> put_in([Access.key(:socket), Access.key(:assigns), :scanner_ref], nil)
     end)
+
+    # Flush any timer messages that were already in the mailbox
+    flush_timer_messages(view.pid)
 
     # Synchronize — ensure LiveView re-renders with new state
     _ = render(view)
+  end
+
+  defp flush_timer_messages(pid) do
+    # Drain any :gravity_tick or :scanner_tick messages from the process mailbox
+    # by sending a sync message and waiting for it
+    _ = :sys.get_state(pid)
   end
 
   # Build a playing game state with a controlled board and piece.
@@ -105,7 +123,9 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
 
       # Place piece near bottom: board is 10 rows, piece is 2 tall,
       # so row 8 means bottom cells at row 9. One more tick = collision.
-      state = build_playing_state(piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 5, row: 8})
+      state =
+        build_playing_state(piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 5, row: 8})
+
       inject_game_state(view, state)
 
       # This tick tries to move to row 9 — bottom cells would be at row 10 (out of bounds)
@@ -148,16 +168,17 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
 
       game = game_state(view)
 
-      # Piece locked at row 4 (since row 5 would collide)
-      # All-dark 2x2 forms a match, so tiles are marked
-      assert Board.get(game.board, 5, 4) == {:marked, :dark}
-      assert Board.get(game.board, 6, 4) == {:marked, :dark}
-      assert Board.get(game.board, 5, 5) == {:marked, :dark}
-      assert Board.get(game.board, 6, 5) == {:marked, :dark}
+      # Piece locked at row 4, then gravity settles tiles to bottom:
+      # col 5/6 had 3 tiles each (rows 4,5,6) → gravity packs to rows 7,8,9
+      # All-dark 2x2 at rows 7-8 forms a match, so those are marked
+      assert Board.get(game.board, 5, 7) == {:marked, :dark}
+      assert Board.get(game.board, 6, 7) == {:marked, :dark}
+      assert Board.get(game.board, 5, 8) == {:marked, :dark}
+      assert Board.get(game.board, 6, 8) == {:marked, :dark}
 
-      # Original tiles still there
-      assert Board.get(game.board, 5, 6) == :light
-      assert Board.get(game.board, 6, 6) == :light
+      # Original light tiles settled to row 9
+      assert Board.get(game.board, 5, 9) == :light
+      assert Board.get(game.board, 6, 9) == :light
     end
   end
 
@@ -169,9 +190,7 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
 
       # Use checkerboard pattern so it won't form a 2x2 match on lock
       state =
-        build_playing_state(
-          piece: %Piece{cells: {:dark, :light, :light, :dark}, col: 5, row: 0}
-        )
+        build_playing_state(piece: %Piece{cells: {:dark, :light, :light, :dark}, col: 5, row: 0})
 
       inject_game_state(view, state)
 
@@ -234,9 +253,7 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
       view = start_game(conn)
 
       state =
-        build_playing_state(
-          piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 5, row: 0}
-        )
+        build_playing_state(piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 5, row: 0})
 
       inject_game_state(view, state)
 
@@ -257,9 +274,7 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
 
       # Checkerboard pattern — no 2x2 same-color match possible
       state =
-        build_playing_state(
-          piece: %Piece{cells: {:dark, :light, :light, :dark}, col: 5, row: 0}
-        )
+        build_playing_state(piece: %Piece{cells: {:dark, :light, :light, :dark}, col: 5, row: 0})
 
       inject_game_state(view, state)
 
@@ -525,7 +540,9 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
   # ── Chain Reactions ─────────────────────────────────────────────────
 
   describe "chain reactions across multiple scanner sweeps" do
-    test "first sweep clears marks, gravity creates new marks, second sweep clears those", %{conn: conn} do
+    test "first sweep clears marks, gravity creates new marks, second sweep clears those", %{
+      conn: conn
+    } do
       view = start_game(conn)
 
       # Setup chain: marked dark at rows 8-9, light tiles at rows 6-7.
@@ -592,7 +609,9 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
     test "ArrowLeft moves piece left", %{conn: conn} do
       view = start_game(conn)
 
-      state = build_playing_state(piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 10, row: 3})
+      state =
+        build_playing_state(piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 10, row: 3})
+
       inject_game_state(view, state)
 
       render_keydown(view, "keydown", %{"key" => "ArrowLeft"})
@@ -604,7 +623,9 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
     test "ArrowRight moves piece right", %{conn: conn} do
       view = start_game(conn)
 
-      state = build_playing_state(piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 10, row: 3})
+      state =
+        build_playing_state(piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 10, row: 3})
+
       inject_game_state(view, state)
 
       render_keydown(view, "keydown", %{"key" => "ArrowRight"})
@@ -616,7 +637,9 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
     test "ArrowLeft against left wall does nothing", %{conn: conn} do
       view = start_game(conn)
 
-      state = build_playing_state(piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 0, row: 3})
+      state =
+        build_playing_state(piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 0, row: 3})
+
       inject_game_state(view, state)
 
       render_keydown(view, "keydown", %{"key" => "ArrowLeft"})
@@ -629,7 +652,9 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
       view = start_game(conn)
 
       # Board width 24, piece is 2 wide, so col 22 means cols 22-23
-      state = build_playing_state(piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 22, row: 3})
+      state =
+        build_playing_state(piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 22, row: 3})
+
       inject_game_state(view, state)
 
       render_keydown(view, "keydown", %{"key" => "ArrowRight"})
@@ -642,9 +667,7 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
       view = start_game(conn)
 
       state =
-        build_playing_state(
-          piece: %Piece{cells: {:dark, :light, :light, :dark}, col: 10, row: 3}
-        )
+        build_playing_state(piece: %Piece{cells: {:dark, :light, :light, :dark}, col: 10, row: 3})
 
       inject_game_state(view, state)
 
@@ -660,9 +683,7 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
       view = start_game(conn)
 
       state =
-        build_playing_state(
-          piece: %Piece{cells: {:dark, :light, :light, :dark}, col: 10, row: 3}
-        )
+        build_playing_state(piece: %Piece{cells: {:dark, :light, :light, :dark}, col: 10, row: 3})
 
       inject_game_state(view, state)
 
@@ -677,7 +698,9 @@ defmodule EclipseWeb.GameLiveIntegrationTest do
     test "soft drop moves piece down one row", %{conn: conn} do
       view = start_game(conn)
 
-      state = build_playing_state(piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 10, row: 3})
+      state =
+        build_playing_state(piece: %Piece{cells: {:dark, :dark, :dark, :dark}, col: 10, row: 3})
+
       inject_game_state(view, state)
 
       render_keydown(view, "keydown", %{"key" => "ArrowDown"})
