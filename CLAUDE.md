@@ -180,13 +180,27 @@ deciduous sync                        # export for static hosting
 
 ### Link Commits (CRITICAL)
 
-After every git commit, link it to the graph:
+After every git commit, log to deciduous **IMMEDIATELY** — before doing anything else. Never batch. Never "come back to it." The post-commit hook exists to enforce this.
 
 ```bash
 git commit -m "feat: add auth"
 deciduous add action "Implemented auth" -c 90 --commit HEAD
 deciduous link <goal_id> <action_id> -r "Implementation"
 ```
+
+### Subagents MUST Log to Deciduous Themselves (CRITICAL)
+
+When launching subagents in git worktrees, **the subagent must log to deciduous from within its worktree**. The main session CANNOT log on behalf of a worktree because deciduous auto-tags nodes with the current git branch. Logging retroactively from a different branch breaks the graph — the entire point is tracing decisions to the branches they happened on.
+
+**Every subagent prompt that involves commits MUST include:**
+
+```
+After committing, log to deciduous immediately:
+  deciduous add action "What you did" -c 90 --commit HEAD -f "files,changed"
+  deciduous link <parent_id> <new_id> -r "reason"
+```
+
+Pass the parent node ID into the subagent prompt so it can link correctly. If the main session creates a goal node (e.g., node 79), tell the subagent: "Link your action to goal 79."
 
 ### Deployment
 
