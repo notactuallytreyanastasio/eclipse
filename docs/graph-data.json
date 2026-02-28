@@ -857,6 +857,94 @@
       "created_at": "2026-02-28T00:44:30.292078-05:00",
       "updated_at": "2026-02-28T00:44:30.292078-05:00",
       "metadata_json": "{\"branch\":\"improve-elixir-quality\",\"commit\":\"d1600f4\",\"confidence\":95}"
+    },
+    {
+      "id": 79,
+      "change_id": "7bcc1e84-2412-4fd2-ae6f-e9a186571bb8",
+      "node_type": "goal",
+      "title": "Rename Illuminates to Eclipse, add CI, rewrite CLAUDE.md",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-28T01:15:29.053446-05:00",
+      "updated_at": "2026-02-28T01:15:29.053446-05:00",
+      "metadata_json": "{\"branch\":\"rename-to-eclipse\",\"confidence\":95,\"prompt\":\"Implement the following plan:\\n\\n# Rename Illuminates → Eclipse\\n\\nRename the entire Phoenix app from Illuminates to Eclipse on a fresh branch rename-to-eclipse. Game modules move from Illuminates.Eclipse.* to Eclipse.Game.*, with Illuminates.Eclipse.Game → Eclipse.Game.Engine to avoid redundancy. LiveView renames from EclipseLive → GameLive.\\n\\n---\\n\\nin a subagent in a git worktree, make us get a CI setup that fully:\\n\\n1. builds with --warnings-as-errors and fails if there are any\\n2. runs credo \\n3. runs tests\\n4. run dialyzer via dialyxir\\n\\nyou will need to add dialyxir and the build steps to run dialyzer, and also wire them into make quality as a piece to ensure things are looking good and functional\\n\\nalso add notes to CLAUDE.md about always trying to start things by defining types which expose boundaries that combine to make very explicit contracts in another subagent and then have it give a pass over CLAUDE.md as a whole and rewrite it with its own voice keeping the content but optimizing it because its gotten so big\"}"
+    },
+    {
+      "id": 80,
+      "change_id": "f8e7faff-18c7-40e5-8942-569620471a52",
+      "node_type": "action",
+      "title": "Rename Illuminates → Eclipse: 53 files, module restructure",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-28T01:15:35.123989-05:00",
+      "updated_at": "2026-02-28T01:15:35.123989-05:00",
+      "metadata_json": "{\"branch\":\"rename-to-eclipse\",\"commit\":\"848d129\",\"confidence\":95,\"files\":[\"lib/eclipse.ex\",\"lib/eclipse_web.ex\",\"lib/eclipse/game/engine.ex\",\"lib/eclipse_web/live/game_live.ex\",\"mix.exs\",\"config/config.exs\",\"Makefile\",\"Dockerfile\",\"docker-compose.yml\",\"README.md\"]}"
+    },
+    {
+      "id": 81,
+      "change_id": "707a291e-606f-4433-9133-43698cb457e1",
+      "node_type": "action",
+      "title": "Add CI workflow + dialyxir + wire into make quality",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-28T01:15:39.472988-05:00",
+      "updated_at": "2026-02-28T01:15:39.472988-05:00",
+      "metadata_json": "{\"branch\":\"rename-to-eclipse\",\"commit\":\"ebe77eb\",\"confidence\":95,\"files\":[\".github/workflows/ci.yml\",\"mix.exs\",\"mix.lock\",\"Makefile\"]}"
+    },
+    {
+      "id": 82,
+      "change_id": "30e87a49-fcdc-4e39-85fa-550d5140f3e3",
+      "node_type": "action",
+      "title": "Rewrite CLAUDE.md: type-first design philosophy, 44% prose reduction",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-28T01:15:44.049767-05:00",
+      "updated_at": "2026-02-28T01:15:44.049767-05:00",
+      "metadata_json": "{\"branch\":\"rename-to-eclipse\",\"commit\":\"21c26a6\",\"confidence\":95,\"files\":[\"CLAUDE.md\"]}"
+    },
+    {
+      "id": 83,
+      "change_id": "7c61f954-6a9d-4916-aaf2-86aa87e72bf4",
+      "node_type": "outcome",
+      "title": "All three changes merged to rename-to-eclipse: 59/59 tests pass, credo clean, 0 warnings. App fully renamed, CI pipeline ready, CLAUDE.md tightened with type-first philosophy.",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-28T01:15:49.706850-05:00",
+      "updated_at": "2026-02-28T01:15:49.706850-05:00",
+      "metadata_json": "{\"branch\":\"rename-to-eclipse\",\"commit\":\"8040c8b\",\"confidence\":95}"
+    },
+    {
+      "id": 84,
+      "change_id": "3a40c55e-76df-4e69-b32c-960cbdfa8ef2",
+      "node_type": "action",
+      "title": "Codify deciduous subagent logging rules in CLAUDE.md",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-28T01:17:11.260394-05:00",
+      "updated_at": "2026-02-28T01:17:11.260394-05:00",
+      "metadata_json": "{\"branch\":\"rename-to-eclipse\",\"commit\":\"7549f84\",\"confidence\":95,\"files\":[\"CLAUDE.md\"]}"
+    },
+    {
+      "id": 85,
+      "change_id": "1149e4cb-f174-46dc-bdb3-739d11917757",
+      "node_type": "action",
+      "title": "Rebase to linear history, remove merge commits",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-28T01:17:44.658215-05:00",
+      "updated_at": "2026-02-28T01:17:44.658215-05:00",
+      "metadata_json": "{\"branch\":\"rename-to-eclipse\",\"commit\":\"1910aea\",\"confidence\":95,\"files\":[\"CLAUDE.md\"]}"
+    },
+    {
+      "id": 86,
+      "change_id": "2f1b5b7e-b8fe-407c-b1e1-e523ac591fc0",
+      "node_type": "action",
+      "title": "Codify rebase-only rule in CLAUDE.md",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-02-28T01:18:17.713554-05:00",
+      "updated_at": "2026-02-28T01:18:17.713554-05:00",
+      "metadata_json": "{\"branch\":\"rename-to-eclipse\",\"commit\":\"f88185c\",\"confidence\":95,\"files\":[\"CLAUDE.md\"]}"
     }
   ],
   "edges": [
@@ -1783,6 +1871,105 @@
       "weight": 1.0,
       "rationale": "Commit links outcome to code",
       "created_at": "2026-02-28T00:44:30.300213-05:00"
+    },
+    {
+      "id": 85,
+      "from_node_id": 79,
+      "to_node_id": 80,
+      "from_change_id": "7bcc1e84-2412-4fd2-ae6f-e9a186571bb8",
+      "to_change_id": "f8e7faff-18c7-40e5-8942-569620471a52",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Core rename implementation",
+      "created_at": "2026-02-28T01:15:35.132056-05:00"
+    },
+    {
+      "id": 86,
+      "from_node_id": 79,
+      "to_node_id": 81,
+      "from_change_id": "7bcc1e84-2412-4fd2-ae6f-e9a186571bb8",
+      "to_change_id": "707a291e-606f-4433-9133-43698cb457e1",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "CI pipeline setup",
+      "created_at": "2026-02-28T01:15:39.481006-05:00"
+    },
+    {
+      "id": 87,
+      "from_node_id": 79,
+      "to_node_id": 82,
+      "from_change_id": "7bcc1e84-2412-4fd2-ae6f-e9a186571bb8",
+      "to_change_id": "30e87a49-fcdc-4e39-85fa-550d5140f3e3",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "CLAUDE.md overhaul",
+      "created_at": "2026-02-28T01:15:44.057248-05:00"
+    },
+    {
+      "id": 88,
+      "from_node_id": 80,
+      "to_node_id": 83,
+      "from_change_id": "f8e7faff-18c7-40e5-8942-569620471a52",
+      "to_change_id": "7c61f954-6a9d-4916-aaf2-86aa87e72bf4",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Rename verified",
+      "created_at": "2026-02-28T01:15:49.715362-05:00"
+    },
+    {
+      "id": 89,
+      "from_node_id": 81,
+      "to_node_id": 83,
+      "from_change_id": "707a291e-606f-4433-9133-43698cb457e1",
+      "to_change_id": "7c61f954-6a9d-4916-aaf2-86aa87e72bf4",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "CI verified",
+      "created_at": "2026-02-28T01:15:49.722839-05:00"
+    },
+    {
+      "id": 90,
+      "from_node_id": 82,
+      "to_node_id": 83,
+      "from_change_id": "30e87a49-fcdc-4e39-85fa-550d5140f3e3",
+      "to_change_id": "7c61f954-6a9d-4916-aaf2-86aa87e72bf4",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "CLAUDE.md verified",
+      "created_at": "2026-02-28T01:15:49.730758-05:00"
+    },
+    {
+      "id": 91,
+      "from_node_id": 79,
+      "to_node_id": 84,
+      "from_change_id": "7bcc1e84-2412-4fd2-ae6f-e9a186571bb8",
+      "to_change_id": "3a40c55e-76df-4e69-b32c-960cbdfa8ef2",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Prevent broken branch tagging",
+      "created_at": "2026-02-28T01:17:11.268003-05:00"
+    },
+    {
+      "id": 92,
+      "from_node_id": 79,
+      "to_node_id": 85,
+      "from_change_id": "7bcc1e84-2412-4fd2-ae6f-e9a186571bb8",
+      "to_change_id": "1149e4cb-f174-46dc-bdb3-739d11917757",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Enforce rebase workflow",
+      "created_at": "2026-02-28T01:17:44.666648-05:00"
+    },
+    {
+      "id": 93,
+      "from_node_id": 79,
+      "to_node_id": 86,
+      "from_change_id": "7bcc1e84-2412-4fd2-ae6f-e9a186571bb8",
+      "to_change_id": "2f1b5b7e-b8fe-407c-b1e1-e523ac591fc0",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Enforce linear history",
+      "created_at": "2026-02-28T01:18:17.722195-05:00"
     }
   ]
 }

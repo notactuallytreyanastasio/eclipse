@@ -1,5 +1,61 @@
 [
   {
+    "hash": "f88185c7a6f2d55afbd09182d17ab954848ab6f6",
+    "short_hash": "f88185c",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T01:18:13-05:00",
+    "message": "codify rebase-only rule: no merge commits, linear history always\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 1
+  },
+  {
+    "hash": "7549f84d715c1e6eb7be2351c8103371b8550e8b",
+    "short_hash": "7549f84",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T01:17:05-05:00",
+    "message": "codify deciduous rules: subagents must log from their own branch\n\nSubagents in git worktrees MUST log to deciduous themselves — the\nmain session can't do it retroactively because branch tagging will\nbe wrong. Also strengthened the immediate-after-commit rule.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 1
+  },
+  {
+    "hash": "1910aeac0f5fd9fb85b7d75e0c728a818be087bc",
+    "short_hash": "1910aea",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T01:17:05-05:00",
+    "message": "codify deciduous rules: subagents must log from their own branch\n\nSubagents in git worktrees MUST log to deciduous themselves — the\nmain session can't do it retroactively because branch tagging will\nbe wrong. Also strengthened the immediate-after-commit rule.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 1
+  },
+  {
+    "hash": "8040c8b0127f9fca4935d2db5ea23646ffe21144",
+    "short_hash": "8040c8b",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T01:09:50-05:00",
+    "message": "Merge branch 'claude-md-rewrite' into rename-to-eclipse",
+    "files_changed": 0
+  },
+  {
+    "hash": "21c26a656702c380d8ac8545175fd8e122e43924",
+    "short_hash": "21c26a6",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T01:09:11-05:00",
+    "message": "rewrite CLAUDE.md: add type-first design philosophy, tighten prose\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 1
+  },
+  {
+    "hash": "ebe77ebd8790144821971abdf853848979a8cd97",
+    "short_hash": "ebe77eb",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T01:07:41-05:00",
+    "message": "add CI workflow, dialyxir, wire dialyzer into make quality\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 4
+  },
+  {
+    "hash": "848d1298a6e584ce3d779a6a2f34faacd25d1457",
+    "short_hash": "848d129",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T01:05:17-05:00",
+    "message": "rename Illuminates -> Eclipse, restructure game modules\n\nIlluminates -> Eclipse, IlluminatesWeb -> EclipseWeb throughout.\nGame modules move from Illuminates.Eclipse.* to Eclipse.Game.*\nwith Game (engine) -> Eclipse.Game.Engine. EclipseLive -> GameLive.\nAll 59 tests pass, credo clean.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 81
+  },
+  {
     "hash": "d1600f472fc16a7b44d9b03f3f673c0407a5cb95",
     "short_hash": "d1600f4",
     "author": "Robert Grayson",
