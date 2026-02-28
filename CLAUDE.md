@@ -1,203 +1,158 @@
-# Project Instructions
+# Eclipse
+
+A Phoenix web app. Runs in Docker with hot reload.
+
+## Design Philosophy
+
+### Type-first design
+
+Always start by defining types that expose boundaries and compose into explicit contracts. Before writing implementation, define the `@type`, `@typedoc`, `defstruct`, and `@spec` that describe data flowing through the system. Types are the contract between modules -- they make boundaries visible and composable. When the types are right, the implementation follows naturally.
+
+In practice:
+- `Eclipse.Game.Piece` defines `@type t` and `@type color` -- the contracts other modules consume
+- `Eclipse.Game.Board` defines `@type cell` and `@type t` -- exposing what a board IS
+- `Eclipse.Game.GameState` combines these into a top-level struct with `@type phase`
+- `Eclipse.Game.Engine` operates purely on these typed structs via `@spec`
+
+### No OO constructors
+
+Do NOT create `.new()` constructor functions. Elixir structs are data -- construct them directly with `%Module{field: value}`. The `defstruct` defaults are the single source of truth.
 
 ## Docker Dev Workflow
 
-The app runs in Docker with hot reload via `docker compose watch` (file sync with inotify).
+**Starting up:**
+1. `make up` -- build and start containers (app + postgres)
+2. `make watch` -- file sync for hot reload (separate terminal or background)
+3. `make setup` -- create DB and run migrations (first time only)
 
-**Starting the dev environment:**
-1. `make up` — build and start containers (app + postgres)
-2. `make watch` — start file sync for hot reload (run in a separate terminal or background)
-3. `make setup` — create database and run migrations (first time only)
+`make watch` is required on macOS because Docker volume mounts don't propagate inotify events. `docker compose watch` syncs files into the container, triggering the filesystem events Phoenix live reload needs.
 
-**Why `make watch` is needed:** On macOS, Docker volume mounts don't propagate filesystem events (inotify) to the container. `docker compose watch` uses the `develop.watch` config to sync files into the container, which triggers proper inotify events that Phoenix live reload detects. Without it, code and CSS changes won't hot-reload.
+**Claude subagents:** Always run `make watch` as a background Bash task before dev work. If changes aren't reflecting in the browser, check that watch is active.
 
-**When using Claude subagents:** Always run `make watch` as a background Bash task before doing dev work. The `/monitor` skill should ensure watch is running. If changes aren't reflecting in the browser, check that `docker compose watch` is active.
+**Make targets:**
+- `make up` / `make down` -- start/stop containers
+- `make watch` -- file sync for hot reload (blocking)
+- `make logs` -- tail container logs
+- `make quality` -- **always use this** before committing (compile, credo, test, improve-elixir, format)
+- `make graph` -- start deciduous graph viewer
 
-**Key make targets:**
-- `make up` — start containers
-- `make watch` — file sync for hot reload (blocking, run in background)
-- `make down` — stop everything
-- `make logs` — tail container logs
-- `make quality` — **always use this** (not individual mix commands) to verify work before committing. Runs compile, credo, test, improve-elixir, and format as a single pipeline
-- `make graph` — start deciduous graph viewer
+## Work Transactions -- ALWAYS USE /work
 
-## Work Transactions — ALWAYS USE /work
+**Every meaningful unit of work MUST start with `/work "description"`.** A "meaningful unit" is any change a future session would want to understand. Only trivial one-line typo fixes skip this.
 
-**Every meaningful unit of work MUST start with `/work "description"`.**
+### Flow
 
-A "meaningful unit" is any change that a future session would want to understand — a bug fix, a feature, a refactor, a visual change, a workflow improvement. The only things that don't need `/work` are trivial one-line typo fixes.
-
-### How it works
-
-1. User asks for something (or you identify work to do)
-2. Run `/work "short description"` — this creates a goal node with the verbatim user request
-3. Before each file edit, create an action node and link it to the goal
-4. After completing the work, create an outcome node, commit, link with `--commit HEAD`
+1. User asks for something (or you identify work)
+2. `/work "short description"` -- creates a goal node with verbatim user request
+3. Before each file edit, create an action node linked to the goal
+4. After completing work, create an outcome node, commit, link with `--commit HEAD`
 5. `deciduous sync` to export
 
-### Why this matters
+### Why
 
-- The decision graph is the project's institutional memory
-- `/work` transactions make the graph useful — they capture not just what changed but WHY
-- Future sessions use `/recover` to rebuild context from the graph
-- Without `/work`, changes are invisible to future sessions
-- The self-healing monitor also logs its fixes this way, creating a complete record
+The decision graph is institutional memory. `/work` captures not just what changed but WHY. Future sessions use `/recover` to rebuild context. Without `/work`, changes are invisible.
 
-### Breaking work into chunks
-
-When a user request involves multiple distinct changes, break it into separate `/work` transactions:
+### Multiple changes = multiple transactions
 
 ```
 User: "fix the tile contrast and slow down the scanner"
 
-→ /work "Fix light tile contrast"        # goal node + actions + outcome + commit
-→ /work "Slow scanner speed 8x"          # separate goal + actions + outcome + commit
+-> /work "Fix light tile contrast"    # goal + actions + outcome + commit
+-> /work "Slow scanner speed 8x"     # separate goal + actions + outcome + commit
 ```
 
-Each `/work` transaction = one logical change = one commit. This keeps the graph clean and makes each change independently recoverable.
+One `/work` = one logical change = one commit.
 
-### Elixir style rule
+## Decision Graph
 
-Do NOT create OO-style `.new()` constructor functions. Elixir structs are data — construct them directly with `%Module{field: value}` and pass them to module functions. The defstruct defaults are the single source of truth.
+**Log decisions IN REAL-TIME, not retroactively.**
 
-## Decision Graph Workflow
-
-**THIS IS MANDATORY. Log decisions IN REAL-TIME, not retroactively.**
-
-### Available Slash Commands
+### Commands & Skills
 
 | Command | Purpose |
 |---------|---------|
-| `/decision` | Manage decision graph - add nodes, link edges, sync |
-| `/recover` | Recover context from decision graph on session start |
-| `/work` | Start a work transaction - creates goal node before implementation |
-| `/document` | Generate comprehensive documentation for a file or directory |
-| `/build-test` | Build the project and run the test suite |
-| `/serve-ui` | Start the decision graph web viewer |
-| `/sync-graph` | Export decision graph to GitHub Pages |
-| `/decision-graph` | Build a decision graph from commit history |
-| `/sync` | Multi-user sync - pull events, rebuild, push |
-
-### Available Skills
-
-| Skill | Purpose |
-|-------|---------|
-| `/pulse` | Map current design as decisions (Now mode) |
-| `/narratives` | Understand how the system evolved (History mode) |
+| `/decision` | Add nodes, link edges, sync |
+| `/recover` | Rebuild context from graph on session start |
+| `/work` | Start work transaction (goal node before implementation) |
+| `/document` | Generate docs for a file or directory |
+| `/build-test` | Build and run tests |
+| `/serve-ui` | Start graph web viewer |
+| `/sync-graph` | Export graph to GitHub Pages |
+| `/decision-graph` | Build graph from commit history |
+| `/sync` | Multi-user sync |
+| `/pulse` | Map current design as decisions |
+| `/narratives` | Understand system evolution |
 | `/archaeology` | Transform narratives into queryable graph |
 
-### The Node Flow Rule - CRITICAL
-
-The canonical flow through the decision graph is:
+### Node Flow (CRITICAL)
 
 ```
 goal -> options -> decision -> actions -> outcomes
 ```
 
-- **Goals** lead to **options** (possible approaches to explore)
-- **Options** lead to a **decision** (choosing which option to pursue)
-- **Decisions** lead to **actions** (implementing the chosen approach)
-- **Actions** lead to **outcomes** (results of the implementation)
-- **Observations** attach anywhere relevant
-- Goals do NOT lead directly to decisions -- there must be options first
-- Options do NOT come after decisions -- options come BEFORE decisions
-- Decision nodes should only be created when an option is actually chosen, not prematurely
+- Goals lead to options (possible approaches)
+- Options lead to a decision (choosing one)
+- Decisions lead to actions (implementation)
+- Actions lead to outcomes (results)
+- Observations attach anywhere
+- Goals NEVER lead directly to decisions -- options must come first
+- Decision nodes: only create when an option is actually chosen
 
-### The Core Rule
+### Core Rule
 
 ```
-BEFORE you do something -> Log what you're ABOUT to do
-AFTER it succeeds/fails -> Log the outcome
+BEFORE you act   -> Log what you're ABOUT to do
+AFTER it resolves -> Log the outcome
 CONNECT immediately -> Link every node to its parent
-AUDIT regularly -> Check for missing connections
+AUDIT regularly   -> Check for missing connections
 ```
 
-### Behavioral Triggers - MUST LOG WHEN:
+### When to Log
 
-| Trigger | Log Type | Example |
-|---------|----------|---------|
-| User asks for a new feature | `goal` **with -p** | "Add dark mode" |
-| Exploring possible approaches | `option` | "Use Redux for state" |
-| Choosing between approaches | `decision` | "Choose state management" |
-| About to write/edit code | `action` | "Implementing Redux store" |
-| Something worked or failed | `outcome` | "Redux integration successful" |
-| Notice something interesting | `observation` | "Existing code uses hooks" |
+| Trigger | Node Type | Example |
+|---------|-----------|---------|
+| New feature request | `goal` **with -p** | "Add dark mode" |
+| Exploring approaches | `option` | "Use Redux for state" |
+| Choosing an approach | `decision` | "Choose state management" |
+| About to write code | `action` | "Implementing Redux store" |
+| Something worked/failed | `outcome` | "Redux integration successful" |
+| Noticed something | `observation` | "Existing code uses hooks" |
 
 ### Document Attachments
 
-Attach files (images, PDFs, diagrams, specs, screenshots) to decision graph nodes for rich context.
-
 ```bash
-# Attach a file to a node
 deciduous doc attach <node_id> <file_path>
 deciduous doc attach <node_id> <file_path> -d "Architecture diagram"
 deciduous doc attach <node_id> <file_path> --ai-describe
-
-# List documents
-deciduous doc list              # All documents
-deciduous doc list <node_id>    # Documents for a specific node
-
-# Manage documents
-deciduous doc show <doc_id>     # Show document details
-deciduous doc describe <doc_id> "Updated description"
-deciduous doc describe <doc_id> --ai   # AI-generate description
-deciduous doc open <doc_id>     # Open in default application
-deciduous doc detach <doc_id>   # Soft-delete (recoverable)
-deciduous doc gc                # Remove orphaned files from disk
+deciduous doc list                    # all documents
+deciduous doc list <node_id>          # for a specific node
+deciduous doc show|describe|open|detach <doc_id>
+deciduous doc gc                      # remove orphaned files
 ```
 
-**When to suggest document attachment:**
+Suggest attachment only when files are directly relevant to a node. Do not aggressively prompt. Files stored in `.deciduous/documents/` with content-hash dedup.
 
-| Situation | Action |
-|-----------|--------|
-| User shares an image or screenshot | Ask: "Want me to attach this to the current goal/action node?" |
-| User references an external document | Ask: "Should I attach a copy to the decision graph?" |
-| Architecture diagram is discussed | Suggest attaching it to the relevant goal node |
-| Files not in the project are dropped in | Attach to the most relevant active node |
+### Verbatim Prompts (CRITICAL)
 
-**Do NOT aggressively prompt for documents.** Only suggest when files are directly relevant to a decision node. Files are stored in `.deciduous/documents/` with content-hash naming for deduplication.
+Prompts must be the EXACT user message, not a summary.
 
-### CRITICAL: Capture VERBATIM User Prompts
-
-**Prompts must be the EXACT user message, not a summary.** When a user request triggers new work, capture their full message word-for-word.
-
-**BAD - summaries are useless for context recovery:**
 ```bash
-# DON'T DO THIS - this is a summary, not a prompt
+# BAD -- summary is useless for recovery
 deciduous add goal "Add auth" -p "User asked: add login to the app"
-```
 
-**GOOD - verbatim prompts enable full context recovery:**
-```bash
-# Use --prompt-stdin for multi-line prompts
+# GOOD -- verbatim enables full context recovery
 deciduous add goal "Add auth" -c 90 --prompt-stdin << 'EOF'
 I need to add user authentication to the app. Users should be able to sign up
 with email/password, and we need OAuth support for Google and GitHub. The auth
 should use JWT tokens with refresh token rotation.
 EOF
-
-# Or use the prompt command to update existing nodes
-deciduous prompt 42 << 'EOF'
-The full verbatim user message goes here...
-EOF
 ```
 
-**When to capture prompts:**
-- Root `goal` nodes: YES - the FULL original request
-- Major direction changes: YES - when user redirects the work
-- Routine downstream nodes: NO - they inherit context via edges
+Capture prompts on: root goal nodes (full request), major direction changes. Not needed on routine downstream nodes -- they inherit context via edges.
 
-**Updating prompts on existing nodes:**
-```bash
-deciduous prompt <node_id> "full verbatim prompt here"
-cat prompt.txt | deciduous prompt <node_id>  # Multi-line from stdin
-```
+### Maintain Connections (CRITICAL)
 
-Prompts are viewable in the web viewer.
-
-### CRITICAL: Maintain Connections
-
-**The graph's value is in its CONNECTIONS, not just nodes.**
+The graph's value is in its connections, not just nodes.
 
 | When you create... | IMMEDIATELY link to... |
 |-------------------|------------------------|
@@ -208,33 +163,24 @@ Prompts are viewable in the web viewer.
 | `observation` | Related goal/action |
 | `revisit` | The decision/outcome being reconsidered |
 
-**Root `goal` nodes are the ONLY valid orphans.**
+Root `goal` nodes are the ONLY valid orphans.
 
-### Quick Commands
+### Quick Reference
 
 ```bash
 deciduous add goal "Title" -c 90 -p "User's original request"
 deciduous add action "Title" -c 85
-deciduous link FROM TO -r "reason"  # DO THIS IMMEDIATELY!
-deciduous serve   # View live (auto-refreshes every 30s)
-deciduous sync    # Export for static hosting
+deciduous link FROM TO -r "reason"    # DO THIS IMMEDIATELY
+deciduous serve                       # live viewer (auto-refresh 30s)
+deciduous sync                        # export for static hosting
 
-# Metadata flags
-# -c, --confidence 0-100   Confidence level
-# -p, --prompt "..."       Store the user prompt (use when semantically meaningful)
-# -f, --files "a.rs,b.rs"  Associate files
-# -b, --branch <name>      Git branch (auto-detected)
-# --commit <hash|HEAD>     Link to git commit (use HEAD for current commit)
-# --date "YYYY-MM-DD"      Backdate node (for archaeology)
-
-# Branch filtering
-deciduous nodes --branch main
-deciduous nodes -b feature-auth
+# Flags: -c (confidence 0-100), -p (prompt), -f (files), -b (branch)
+#        --commit <hash|HEAD>, --date "YYYY-MM-DD"
 ```
 
-### CRITICAL: Link Commits to Actions/Outcomes
+### Link Commits (CRITICAL)
 
-**After every git commit, link it to the decision graph!**
+After every git commit, link it to the graph:
 
 ```bash
 git commit -m "feat: add auth"
@@ -242,130 +188,76 @@ deciduous add action "Implemented auth" -c 90 --commit HEAD
 deciduous link <goal_id> <action_id> -r "Implementation"
 ```
 
-The `--commit HEAD` flag captures the commit hash and links it to the node. The web viewer will show commit messages, authors, and dates.
-
-### Git History & Deployment
+### Deployment
 
 ```bash
-# Export graph AND git history for web viewer
-deciduous sync
-
-# This creates:
-# - docs/graph-data.json (decision graph)
-# - docs/git-history.json (commit info for linked nodes)
+deciduous sync    # creates docs/graph-data.json + docs/git-history.json
 ```
 
-To deploy to GitHub Pages:
-1. `deciduous sync` to export
-2. Push to GitHub
-3. Settings > Pages > Deploy from branch > /docs folder
+Then push to GitHub, enable Pages from /docs folder. Live at `https://<user>.github.io/<repo>/`.
 
-Your graph will be live at `https://<user>.github.io/<repo>/`
+Nodes are auto-tagged with the current git branch. Configure in `.deciduous/config.toml`.
 
-### Branch-Based Grouping
+### Audit (Before Every Sync)
 
-Nodes are auto-tagged with the current git branch. Configure in `.deciduous/config.toml`:
-```toml
-[branch]
-main_branches = ["main", "master"]
-auto_detect = true
-```
+1. Every outcome links back to its action?
+2. Every action links to its decision?
+3. No dangling orphans (except root goals)?
 
-### Audit Checklist (Before Every Sync)
+### Git Staging -- CRITICAL
 
-1. Does every **outcome** link back to what caused it?
-2. Does every **action** link to why you did it?
-3. Any **dangling outcomes** without parents?
+**NEVER** use broad staging: `git add -A`, `git add .`, `git commit -am`, `git add *`.
 
-### Git Staging Rules - CRITICAL
+**ALWAYS** stage files explicitly by name: `git add CLAUDE.md lib/eclipse/game.ex`
 
-**NEVER use broad git add commands that stage everything:**
-- ❌ `git add -A` - stages ALL changes including untracked files
-- ❌ `git add .` - stages everything in current directory
-- ❌ `git add -a` or `git commit -am` - auto-stages all tracked changes
-- ❌ `git add *` - glob patterns can catch unintended files
+This prevents committing secrets, binaries, or unintended changes.
 
-**ALWAYS stage files explicitly by name:**
-- ✅ `git add src/main.rs src/lib.rs`
-- ✅ `git add Cargo.toml Cargo.lock`
-- ✅ `git add .claude/commands/decision.md`
-
-**Why this matters:**
-- Prevents accidentally committing sensitive files (.env, credentials)
-- Prevents committing large binaries or build artifacts
-- Forces you to review exactly what you're committing
-- Catches unintended changes before they enter git history
-
-### Session Start Checklist
+### Session Start
 
 ```bash
-deciduous check-update    # Update needed? Run 'deciduous update' if yes
-deciduous nodes           # What decisions exist?
-deciduous edges           # How are they connected? Any gaps?
-deciduous doc list        # Any attached documents to review?
-git status                # Current state
+deciduous check-update && deciduous nodes && deciduous edges && deciduous doc list && git status
 ```
 
 ### Multi-User Sync
 
-Sync decisions with teammates via event logs:
-
 ```bash
-# Check sync status
-deciduous events status
-
-# Apply teammate events (after git pull)
-deciduous events rebuild
-
-# Compact old events periodically
-deciduous events checkpoint --clear-events
+deciduous events status              # check sync status
+deciduous events rebuild             # apply teammate events (after git pull)
+deciduous events checkpoint --clear-events  # compact old events
 ```
 
-Events auto-emit on add/link/status commands. Git merges event files automatically.
-This is a web application written using the Phoenix web framework.
+Events auto-emit on add/link/status commands.
 
-## Project guidelines
+## Project Guidelines
 
-- Use `mix precommit` alias when you are done with all changes and fix any pending issues
-- Use the already included and available `:req` (`Req`) library for HTTP requests, **avoid** `:httpoison`, `:tesla`, and `:httpc`. Req is included by default and is the preferred HTTP client for Phoenix apps
+- Use `make quality` to verify all changes before committing
+- Use `:req` (`Req`) for HTTP requests. Never use `:httpoison`, `:tesla`, or `:httpc`
 
-### Phoenix v1.8 guidelines
+### Phoenix v1.8
 
-- **Always** begin your LiveView templates with `<Layouts.app flash={@flash} ...>` which wraps all inner content
-- The `MyAppWeb.Layouts` module is aliased in the `my_app_web.ex` file, so you can use it without needing to alias it again
-- Anytime you run into errors with no `current_scope` assign:
-  - You failed to follow the Authenticated Routes guidelines, or you failed to pass `current_scope` to `<Layouts.app>`
-  - **Always** fix the `current_scope` error by moving your routes to the proper `live_session` and ensure you pass `current_scope` as needed
-- Phoenix v1.8 moved the `<.flash_group>` component to the `Layouts` module. You are **forbidden** from calling `<.flash_group>` outside of the `layouts.ex` module
-- Out of the box, `core_components.ex` imports an `<.icon name="hero-x-mark" class="w-5 h-5"/>` component for hero icons. **Always** use the `<.icon>` component for icons, **never** use `Heroicons` modules or similar
-- **Always** use the imported `<.input>` component for form inputs from `core_components.ex` when available. `<.input>` is imported and using it will save steps and prevent errors
-- If you override the default input classes (`<.input class="myclass px-2 py-1 rounded-lg">)`) class with your own values, no default classes are inherited, so your
-custom classes must fully style the input
+- LiveView templates start with `<Layouts.app flash={@flash} ...>` wrapping all content. `Layouts` is already aliased in `eclipse_web.ex`
+- `current_scope` errors mean your routes are in the wrong `live_session` or you forgot to pass `current_scope` to `<Layouts.app>`
+- `<.flash_group>` lives in `Layouts` only -- never call it elsewhere
+- Use `<.icon name="hero-x-mark" class="w-5 h-5"/>` for icons (from `core_components.ex`). Never use `Heroicons` modules
+- Use `<.input>` for form inputs (imported from `core_components.ex`). When overriding classes, no defaults are inherited -- you must fully style the input
 
-### JS and CSS guidelines
+### JS & CSS
 
-- **Use Tailwind CSS classes and custom CSS rules** to create polished, responsive, and visually stunning interfaces.
-- Tailwindcss v4 **no longer needs a tailwind.config.js** and uses a new import syntax in `app.css`:
+- Tailwind CSS v4: no `tailwind.config.js`. Uses import syntax in `app.css`:
 
       @import "tailwindcss" source(none);
       @source "../css";
       @source "../js";
-      @source "../../lib/my_app_web";
+      @source "../../lib/eclipse_web";
 
-- **Always use and maintain this import syntax** in the app.css file for projects generated with `phx.new`
-- **Never** use `@apply` when writing raw css
-- **Always** manually write your own tailwind-based components instead of using daisyUI for a unique, world-class design
-- Out of the box **only the app.js and app.css bundles are supported**
-  - You cannot reference an external vendor'd script `src` or link `href` in the layouts
-  - You must import the vendor deps into app.js and app.css to use them
-  - **Never write inline <script>custom js</script> tags within templates**
+- Never use `@apply` in raw CSS
+- Write your own Tailwind components -- no daisyUI
+- Only `app.js` and `app.css` bundles exist. Import vendor deps into these files. No external `<script src>` or `<link href>` in layouts. No inline `<script>` tags in templates
 
-### UI/UX & design guidelines
+### UI/UX
 
-- **Produce world-class UI designs** with a focus on usability, aesthetics, and modern design principles
-- Implement **subtle micro-interactions** (e.g., button hover effects, and smooth transitions)
-- Ensure **clean typography, spacing, and layout balance** for a refined, premium look
-- Focus on **delightful details** like hover effects, loading states, and smooth page transitions
+- World-class UI: clean typography, balanced spacing, refined layouts
+- Subtle micro-interactions: hover effects, smooth transitions, loading states
 
 
 <!-- usage-rules-start -->
