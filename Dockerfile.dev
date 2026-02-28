@@ -15,6 +15,12 @@ RUN mix deps.get
 COPY config config
 RUN mix deps.compile
 
-RUN mix tailwind.install --if-missing && mix esbuild.install --if-missing
+COPY lib lib
+COPY priv priv
+COPY assets assets
+COPY test test
 
-CMD mix setup && mix phx.server
+RUN mix tailwind.install --if-missing && mix esbuild.install --if-missing
+RUN mix compile
+
+CMD mix ecto.create && mix ecto.migrate && mix phx.server

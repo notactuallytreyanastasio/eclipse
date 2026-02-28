@@ -134,8 +134,8 @@ defmodule IlluminatesWeb.EclipseLive do
         nil -> "eclipse-empty"
         :dark -> "eclipse-dark"
         :light -> "eclipse-light"
-        {:marked, :dark} -> "eclipse-dark eclipse-marked"
-        {:marked, :light} -> "eclipse-light eclipse-marked"
+        {:marked, :dark} -> "eclipse-marked-dark"
+        {:marked, :light} -> "eclipse-marked-light"
         {:active, :dark} -> "eclipse-dark eclipse-active"
         {:active, :light} -> "eclipse-light eclipse-active"
       end

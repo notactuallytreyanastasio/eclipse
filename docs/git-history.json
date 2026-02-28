@@ -1,0 +1,18 @@
+[
+  {
+    "hash": "fb4292439b67f1ce708d638894c8418a483ffde1",
+    "short_hash": "fb42924",
+    "author": "Robert Grayson",
+    "date": "2026-02-27T23:33:23-05:00",
+    "message": "Improve Elixir code quality across Eclipse game modules\n\n- Enable Credo strict mode and add credo --strict to precommit pipeline\n- Replace compound aliases with one-per-line alphabetical aliases\n- Extract duplicated drop logic in Game.ex into drop_one_row/1\n- Extract duplicated tick handler pattern in EclipseLive into handle_tick/3\n- Add @moduledoc to EclipseLive\n- Add has_marks?/1 test coverage to BoardTest (3 new tests)\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 7
+  },
+  {
+    "hash": "455966eb862f621a11886e9d7916ed5f6d7e91f2",
+    "short_hash": "455966e",
+    "author": "Robert Grayson",
+    "date": "2026-02-27T23:09:39-05:00",
+    "message": "Add Docker setup and configurable dev/test database\n\nDockerize the app with multi-stage Dockerfile, docker-compose with\nPostgres, and release module for migrations. Make DB credentials and\nport configurable via environment variables for container use while\npreserving defaults for local development.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 7
+  }
+]

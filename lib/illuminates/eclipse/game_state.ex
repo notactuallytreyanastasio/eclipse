@@ -38,7 +38,7 @@ defmodule Illuminates.Eclipse.GameState do
 
     %__MODULE__{
       board: board,
-      scanner: Scanner.new(),
+      scanner: %Scanner{},
       queue: for(_ <- 1..3, do: Piece.random()),
       phase: :waiting,
       gravity_interval: Keyword.get(opts, :gravity_interval, 1000),

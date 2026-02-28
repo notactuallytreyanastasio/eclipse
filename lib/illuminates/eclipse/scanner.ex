@@ -10,16 +10,7 @@ defmodule Illuminates.Eclipse.Scanner do
           active?: boolean()
         }
 
-  defstruct position: 0.0, speed: 0.5, active?: true
-
-  @spec new(keyword()) :: t()
-  def new(opts \\ []) do
-    %__MODULE__{
-      position: Keyword.get(opts, :position, 0.0),
-      speed: Keyword.get(opts, :speed, 0.5),
-      active?: Keyword.get(opts, :active?, true)
-    }
-  end
+  defstruct position: 0.0, speed: 0.0625, active?: true
 
   @spec advance(t(), non_neg_integer()) :: {t(), non_neg_integer(), non_neg_integer()}
   def advance(%__MODULE__{position: pos, speed: speed} = scanner, board_width) do

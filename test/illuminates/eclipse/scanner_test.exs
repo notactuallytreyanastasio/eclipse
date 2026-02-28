@@ -5,27 +5,27 @@ defmodule Illuminates.Eclipse.ScannerTest do
 
   describe "advance/2" do
     test "moves position forward by speed" do
-      scanner = Scanner.new(position: 0.0, speed: 0.5)
+      scanner = %Scanner{position: 0.0, speed: 0.5}
       {advanced, _from, _to} = Scanner.advance(scanner, 24)
       assert advanced.position == 0.5
     end
 
     test "returns no clear range when within same column" do
-      scanner = Scanner.new(position: 0.0, speed: 0.5)
+      scanner = %Scanner{position: 0.0, speed: 0.5}
       {_scanner, from, to} = Scanner.advance(scanner, 24)
       assert from == -1
       assert to == -1
     end
 
     test "returns clear range when crossing column boundary" do
-      scanner = Scanner.new(position: 0.5, speed: 0.5)
+      scanner = %Scanner{position: 0.5, speed: 0.5}
       {_scanner, from, to} = Scanner.advance(scanner, 24)
       assert from == 0
       assert to == 0
     end
 
     test "wraps around at board width" do
-      scanner = Scanner.new(position: 23.5, speed: 1.0)
+      scanner = %Scanner{position: 23.5, speed: 1.0}
       {wrapped, from, to} = Scanner.advance(scanner, 24)
       assert wrapped.position == 0.5
       assert from == 23
@@ -33,7 +33,7 @@ defmodule Illuminates.Eclipse.ScannerTest do
     end
 
     test "handles multi-column sweep" do
-      scanner = Scanner.new(position: 5.0, speed: 2.0)
+      scanner = %Scanner{position: 5.0, speed: 2.0}
       {advanced, from, to} = Scanner.advance(scanner, 24)
       assert advanced.position == 7.0
       assert from == 5

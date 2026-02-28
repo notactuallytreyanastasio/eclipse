@@ -58,7 +58,7 @@ After fixing:
 
 1. Run `mix compile --warnings-as-errors` locally to verify the fix compiles
 2. Run `mix test` to make sure nothing is broken
-3. Rebuild the containers: `docker compose up --build -d`
+3. If `docker compose watch` is running, the fix will sync automatically. If not, rebuild: `docker compose up --build -d`
 4. Tail the logs again to verify the error is resolved: `docker compose logs -f --tail=50`
 
 ### Step 6: Log outcome and report

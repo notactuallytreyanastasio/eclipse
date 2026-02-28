@@ -66,7 +66,7 @@ For Critical and Error severity:
    ```bash
    mix compile --warnings-as-errors && mix test
    ```
-6. **Rebuild the container:**
+6. **Apply the fix:** If `docker compose watch` is running, the fix syncs automatically. Otherwise rebuild:
    ```bash
    docker compose up --build -d
    ```

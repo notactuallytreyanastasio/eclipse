@@ -20,6 +20,45 @@ The app runs in Docker with hot reload via `docker compose watch` (file sync wit
 - `make logs` — tail container logs
 - `make graph` — start deciduous graph viewer
 
+## Work Transactions — ALWAYS USE /work
+
+**Every meaningful unit of work MUST start with `/work "description"`.**
+
+A "meaningful unit" is any change that a future session would want to understand — a bug fix, a feature, a refactor, a visual change, a workflow improvement. The only things that don't need `/work` are trivial one-line typo fixes.
+
+### How it works
+
+1. User asks for something (or you identify work to do)
+2. Run `/work "short description"` — this creates a goal node with the verbatim user request
+3. Before each file edit, create an action node and link it to the goal
+4. After completing the work, create an outcome node, commit, link with `--commit HEAD`
+5. `deciduous sync` to export
+
+### Why this matters
+
+- The decision graph is the project's institutional memory
+- `/work` transactions make the graph useful — they capture not just what changed but WHY
+- Future sessions use `/recover` to rebuild context from the graph
+- Without `/work`, changes are invisible to future sessions
+- The self-healing monitor also logs its fixes this way, creating a complete record
+
+### Breaking work into chunks
+
+When a user request involves multiple distinct changes, break it into separate `/work` transactions:
+
+```
+User: "fix the tile contrast and slow down the scanner"
+
+→ /work "Fix light tile contrast"        # goal node + actions + outcome + commit
+→ /work "Slow scanner speed 8x"          # separate goal + actions + outcome + commit
+```
+
+Each `/work` transaction = one logical change = one commit. This keeps the graph clean and makes each change independently recoverable.
+
+### Elixir style rule
+
+Do NOT create OO-style `.new()` constructor functions. Elixir structs are data — construct them directly with `%Module{field: value}` and pass them to module functions. The defstruct defaults are the single source of truth.
+
 ## Decision Graph Workflow
 
 **THIS IS MANDATORY. Log decisions IN REAL-TIME, not retroactively.**

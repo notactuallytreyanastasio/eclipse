@@ -89,25 +89,21 @@ defmodule Illuminates.Eclipse.Game do
     if from_col >= 0 and to_col >= 0 do
       {cleared_board, cleared_count} = Board.clear_marked_in_range(board, from_col, to_col)
 
-      if cleared_count > 0 do
-        settled_board =
-          cleared_board
-          |> Board.apply_gravity()
-          |> Board.find_matches()
+      settled_board =
+        cleared_board
+        |> Board.apply_gravity()
+        |> Board.find_matches()
 
-        score_bonus = cleared_count * 10 * state.level
+      score_bonus = cleared_count * 10 * state.level
 
-        %{
-          state
-          | board: settled_board,
-            scanner: new_scanner,
-            score: state.score + score_bonus,
-            lines_cleared: state.lines_cleared + cleared_count
-        }
-        |> maybe_level_up()
-      else
-        %{state | scanner: new_scanner}
-      end
+      %{
+        state
+        | board: settled_board,
+          scanner: new_scanner,
+          score: state.score + score_bonus,
+          lines_cleared: state.lines_cleared + cleared_count
+      }
+      |> maybe_level_up()
     else
       %{state | scanner: new_scanner}
     end
