@@ -18,6 +18,7 @@ defmodule IlluminatesWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    live "/play", EclipseLive
   end
 
   # Other scopes may use custom stacks.

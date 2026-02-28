@@ -103,3 +103,147 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+/* === Eclipse: Game Boy DMG Theme === */
+
+:root {
+  --gb-darkest: #0f380f;
+  --gb-dark: #306230;
+  --gb-light: #8bac0f;
+  --gb-lightest: #9bbc0f;
+  --gb-cell-size: 24px;
+  --gb-dot-size: 2px;
+}
+
+.eclipse-screen {
+  background: #4a5a28;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.5),
+    0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.eclipse-board {
+  display: grid;
+  grid-template-columns: repeat(24, var(--gb-cell-size));
+  grid-template-rows: repeat(10, var(--gb-cell-size));
+  gap: 1px;
+  background-color: var(--gb-dark);
+  border: 3px solid var(--gb-darkest);
+  padding: 1px;
+  image-rendering: pixelated;
+}
+
+.eclipse-cell {
+  width: var(--gb-cell-size);
+  height: var(--gb-cell-size);
+  transition: background-color 0.05s step-end;
+}
+
+.eclipse-empty {
+  background-color: var(--gb-lightest);
+  background-image: radial-gradient(
+    circle,
+    var(--gb-light) 1px,
+    transparent 1px
+  );
+  background-size: 6px 6px;
+}
+
+.eclipse-dark {
+  background-color: var(--gb-darkest);
+  background-image: radial-gradient(
+    circle,
+    var(--gb-dark) var(--gb-dot-size),
+    var(--gb-darkest) var(--gb-dot-size)
+  );
+  background-size: 6px 6px;
+}
+
+.eclipse-light {
+  background-color: var(--gb-light);
+  background-image: radial-gradient(
+    circle,
+    var(--gb-lightest) var(--gb-dot-size),
+    var(--gb-light) var(--gb-dot-size)
+  );
+  background-size: 6px 6px;
+}
+
+.eclipse-active {
+  box-shadow: inset 0 0 0 1px rgba(155, 188, 15, 0.5);
+}
+
+.eclipse-marked {
+  animation: eclipse-pulse 0.3s step-start infinite alternate;
+}
+
+@keyframes eclipse-pulse {
+  from { opacity: 1; }
+  to { opacity: 0.3; }
+}
+
+.eclipse-scanner {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--gb-lightest);
+  box-shadow: 0 0 8px var(--gb-lightest), 0 0 16px var(--gb-light);
+  z-index: 10;
+  transition: left 50ms linear;
+  pointer-events: none;
+}
+
+.eclipse-preview {
+  display: grid;
+  grid-template-columns: repeat(2, 18px);
+  grid-template-rows: repeat(2, 18px);
+  gap: 1px;
+  background-color: var(--gb-dark);
+  border: 2px solid var(--gb-darkest);
+  padding: 1px;
+}
+
+.eclipse-preview .eclipse-cell {
+  width: 18px;
+  height: 18px;
+}
+
+.eclipse-text {
+  font-family: monospace;
+  color: var(--gb-darkest);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.eclipse-start-btn {
+  font-family: monospace;
+  color: var(--gb-darkest);
+  background: var(--gb-light);
+  border: 3px solid var(--gb-darkest);
+  padding: 8px 24px;
+  font-size: 16px;
+  letter-spacing: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: background-color 0.1s step-end;
+}
+
+.eclipse-start-btn:hover {
+  background: var(--gb-lightest);
+}
+
+.eclipse-game-over {
+  animation: eclipse-blink 1s step-start infinite;
+}
+
+@keyframes eclipse-blink {
+  50% { opacity: 0; }
+}
+
+#eclipse-game {
+  background: var(--gb-lightest);
+  min-height: 100vh;
+}
