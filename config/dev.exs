@@ -1,11 +1,11 @@
 import Config
 
 # Configure your database
-config :illuminates, Illuminates.Repo,
+config :eclipse, Eclipse.Repo,
   username: System.get_env("DB_USERNAME") || "postgres",
   password: System.get_env("DB_PASSWORD") || "postgres",
   hostname: System.get_env("DB_HOSTNAME") || "localhost",
-  database: System.get_env("DB_DATABASE") || "illuminates_dev",
+  database: System.get_env("DB_DATABASE") || "eclipse_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
@@ -16,7 +16,7 @@ config :illuminates, Illuminates.Repo,
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
-config :illuminates, IlluminatesWeb.Endpoint,
+config :eclipse, EclipseWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [
@@ -28,8 +28,8 @@ config :illuminates, IlluminatesWeb.Endpoint,
   debug_errors: true,
   secret_key_base: "4eKgksBqAAJrfuG5xGGRK6Q/2BtJwHf02BiGO1jIo3ODLLYxV2kpiYhYeyG7IQgv",
   watchers: [
-    esbuild: {Esbuild, :install_and_run, [:illuminates, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:illuminates, ~w(--watch)]}
+    esbuild: {Esbuild, :install_and_run, [:eclipse, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:eclipse, ~w(--watch)]}
   ]
 
 # ## SSL Support
@@ -56,7 +56,7 @@ config :illuminates, IlluminatesWeb.Endpoint,
 # different ports.
 
 # Reload browser tabs when matching files change.
-config :illuminates, IlluminatesWeb.Endpoint,
+config :eclipse, EclipseWeb.Endpoint,
   live_reload: [
     web_console_logger: true,
     patterns: [
@@ -65,13 +65,13 @@ config :illuminates, IlluminatesWeb.Endpoint,
       # Gettext translations
       ~r"priv/gettext/.*\.po$"E,
       # Router, Controllers, LiveViews and LiveComponents
-      ~r"lib/illuminates_web/router\.ex$"E,
-      ~r"lib/illuminates_web/(controllers|live|components)/.*\.(ex|heex)$"E
+      ~r"lib/eclipse_web/router\.ex$"E,
+      ~r"lib/eclipse_web/(controllers|live|components)/.*\.(ex|heex)$"E
     ]
   ]
 
 # Enable dev routes for dashboard and mailbox
-config :illuminates, dev_routes: true
+config :eclipse, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"

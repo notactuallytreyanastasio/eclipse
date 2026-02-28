@@ -1,4 +1,4 @@
-# Illuminates
+# Eclipse
 
 A Lumines-style puzzle game called **Eclipse**, built as a Phoenix LiveView app with a Game Boy DMG aesthetic. Pure CSS graphics with dot-matrix/dithered rendering. All game logic is pure functions for future PubSub/multi-board extensibility.
 
@@ -25,15 +25,15 @@ The app runs at `http://localhost:4000` by default. Override with `PORT=8080 mak
 ## Architecture
 
 ```
-lib/illuminates/eclipse/
+lib/eclipse/game/
   piece.ex          # 2x2 block struct, 6 patterns, rotation
   board.ex          # Board grid, collision, gravity, 2x2 matching
   scanner.ex        # Scanner sweep logic
   game_state.ex     # Top-level game state struct
-  game.ex           # Pure function game engine
+  engine.ex         # Pure function game engine
 
-lib/illuminates_web/live/
-  eclipse_live.ex   # LiveView with inline HEEx template
+lib/eclipse_web/live/
+  game_live.ex      # LiveView with inline HEEx template
 ```
 
 Game state lives in LiveView assigns. Two independent `Process.send_after` timer loops drive gravity and the scanner. The entire game engine is pure functions operating on plain structs — no GenServers, no side effects. This makes it testable, serializable, and ready to extract into a GenServer with PubSub broadcasting for multiplayer.
@@ -193,6 +193,6 @@ The app runs in Docker Compose with three services:
 - **db** — PostgreSQL 17 with health checks.
 - **graph** — Deciduous decision graph viewer. Built from `Dockerfile.graph` (Rust multi-stage build via `cargo install deciduous`). Mounts `.deciduous/` from the host.
 
-Database defaults to `illuminates_dev`. Configurable via `DB_USERNAME`, `DB_PASSWORD`, `DB_HOSTNAME`, `DB_DATABASE` environment variables.
+Database defaults to `eclipse_dev`. Configurable via `DB_USERNAME`, `DB_PASSWORD`, `DB_HOSTNAME`, `DB_DATABASE` environment variables.
 
 The original `Dockerfile` (prod release) is still available for production deployments.

@@ -5,25 +5,25 @@ import Config
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
-config :illuminates, Illuminates.Repo,
+config :eclipse, Eclipse.Repo,
   username: System.get_env("DB_USERNAME") || "postgres",
   password: System.get_env("DB_PASSWORD") || "postgres",
   hostname: System.get_env("DB_HOSTNAME") || "localhost",
   database:
-    (System.get_env("DB_DATABASE") || "illuminates_test") <>
+    (System.get_env("DB_DATABASE") || "eclipse_test") <>
       "#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :illuminates, IlluminatesWeb.Endpoint,
+config :eclipse, EclipseWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "ewgr4sNEakufy198kxFPYWstGW77U0LloSctugwyfBOJp2yrq/AAlcesGOlSiDnw",
   server: false
 
 # In test we don't send emails
-config :illuminates, Illuminates.Mailer, adapter: Swoosh.Adapters.Test
+config :eclipse, Eclipse.Mailer, adapter: Swoosh.Adapters.Test
 
 # Disable swoosh api client as it is only required for production adapters
 config :swoosh, :api_client, false

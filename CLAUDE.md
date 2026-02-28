@@ -18,6 +18,7 @@ The app runs in Docker with hot reload via `docker compose watch` (file sync wit
 - `make watch` — file sync for hot reload (blocking, run in background)
 - `make down` — stop everything
 - `make logs` — tail container logs
+- `make quality` — **always use this** (not individual mix commands) to verify work before committing. Runs compile, credo, test, improve-elixir, and format as a single pipeline
 - `make graph` — start deciduous graph viewer
 
 ## Work Transactions — ALWAYS USE /work

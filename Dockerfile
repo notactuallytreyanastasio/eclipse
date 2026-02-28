@@ -50,8 +50,8 @@ RUN chown nobody /app
 ENV MIX_ENV="prod"
 ENV PHX_SERVER="true"
 
-COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/illuminates ./
+COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/eclipse ./
 
 USER nobody
 
-CMD /app/bin/illuminates eval "Illuminates.Release.setup()" && /app/bin/illuminates start
+CMD /app/bin/eclipse eval "Eclipse.Release.setup()" && /app/bin/eclipse start

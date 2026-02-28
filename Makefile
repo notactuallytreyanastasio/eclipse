@@ -1,7 +1,7 @@
 .PHONY: help up down watch logs heal listen monitor graph setup migrate backup shell iex quality test format credo improve compile
 
 ELIXIRC_OPTS = --warnings-as-errors
-APP_CONTAINER = illuminates-app-1
+APP_CONTAINER = eclipse-app-1
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -36,20 +36,20 @@ graph: ## Start the decision graph viewer (GRAPH_PORT=3001 make graph)
 # --- Database ---
 
 setup: ## Create database and run migrations (first-time setup)
-	docker compose exec app /app/bin/illuminates eval "Illuminates.Release.setup()"
+	docker compose exec app /app/bin/eclipse eval "Eclipse.Release.setup()"
 
 migrate: ## Run pending migrations
-	docker compose exec app /app/bin/illuminates eval "Illuminates.Release.migrate()"
+	docker compose exec app /app/bin/eclipse eval "Eclipse.Release.migrate()"
 
 backup: ## Backup the database to backups/
 	@mkdir -p backups
-	docker compose exec db pg_dump -U postgres illuminates_dev > backups/backup_$$(date +%Y%m%d_%H%M%S).sql
+	docker compose exec db pg_dump -U postgres eclipse_dev > backups/backup_$$(date +%Y%m%d_%H%M%S).sql
 	@echo "Backup saved to backups/"
 
 # --- Shell access ---
 
 iex: ## Open an IEx shell on the running app container
-	docker compose exec app /app/bin/illuminates remote
+	docker compose exec app /app/bin/eclipse remote
 
 shell: ## Open a bash shell inside the app container
 	docker compose exec app /bin/bash
