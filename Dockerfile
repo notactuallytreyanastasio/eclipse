@@ -24,8 +24,9 @@ COPY priv priv
 COPY lib lib
 COPY assets assets
 
-RUN mix assets.deploy
+RUN mix tailwind.install --if-missing && mix esbuild.install --if-missing
 RUN mix compile
+RUN mix assets.deploy
 
 COPY config/runtime.exs config/
 RUN mix release
@@ -53,4 +54,4 @@ COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/illuminates .
 
 USER nobody
 
-CMD /app/bin/illuminates eval "Illuminates.Release.migrate()" && /app/bin/illuminates start
+CMD /app/bin/illuminates eval "Illuminates.Release.setup()" && /app/bin/illuminates start

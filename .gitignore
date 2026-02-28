@@ -2,3 +2,4 @@
 .deciduous/
 deps
 _build
+priv/static/assets/
