@@ -181,7 +181,22 @@ defmodule IlluminatesWeb.EclipseLive do
         id="eclipse-game"
         class="flex flex-col items-center gap-6 min-h-screen py-8"
         phx-window-keydown="keydown"
+        phx-hook=".PreventScroll"
       >
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".PreventScroll">
+        export default {
+          mounted() {
+            const gameKeys = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "]);
+            this.handler = (e) => {
+              if (gameKeys.has(e.key)) { e.preventDefault(); }
+            };
+            window.addEventListener("keydown", this.handler);
+          },
+          destroyed() {
+            window.removeEventListener("keydown", this.handler);
+          }
+        }
+      </script>
         <%!-- Title --%>
         <h1 class="eclipse-text text-2xl tracking-[0.3em]">ECLIPSE</h1>
 
