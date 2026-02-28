@@ -15,13 +15,20 @@ defmodule Eclipse.Game.BoardTest do
 
   describe "get/3 and put/4" do
     test "stores and retrieves cell values" do
-      board = Board.new() |> Board.put(5, 3, :dark)
+      board =
+        Board.new()
+        |> Board.put(5, 3, :dark)
+
       assert Board.get(board, 5, 3) == :dark
       assert Board.get(board, 0, 0) == nil
     end
 
     test "putting nil removes the cell" do
-      board = Board.new() |> Board.put(5, 3, :dark) |> Board.put(5, 3, nil)
+      board =
+        Board.new()
+        |> Board.put(5, 3, :dark)
+        |> Board.put(5, 3, nil)
+
       assert Board.get(board, 5, 3) == nil
     end
   end
@@ -29,7 +36,10 @@ defmodule Eclipse.Game.BoardTest do
   describe "place_piece/2" do
     test "stamps piece cells onto the board" do
       piece = %Piece{cells: {:dark, :light, :light, :dark}, col: 5, row: 3}
-      board = Board.new() |> Board.place_piece(piece)
+
+      board =
+        Board.new()
+        |> Board.place_piece(piece)
 
       assert Board.get(board, 5, 3) == :dark
       assert Board.get(board, 6, 3) == :light
@@ -41,33 +51,47 @@ defmodule Eclipse.Game.BoardTest do
   describe "any_collision?/2" do
     test "detects left wall collision" do
       piece = %Piece{cells: {:dark, :dark, :dark, :dark}, col: -1, row: 0}
-      assert Board.any_collision?(Board.new(), piece)
+      board = Board.new()
+
+      assert Board.any_collision?(board, piece)
     end
 
     test "detects right wall collision" do
       piece = %Piece{cells: {:dark, :dark, :dark, :dark}, col: 23, row: 0}
-      assert Board.any_collision?(Board.new(), piece)
+      board = Board.new()
+
+      assert Board.any_collision?(board, piece)
     end
 
     test "detects bottom wall collision" do
       piece = %Piece{cells: {:dark, :dark, :dark, :dark}, col: 0, row: 9}
-      assert Board.any_collision?(Board.new(), piece)
+      board = Board.new()
+
+      assert Board.any_collision?(board, piece)
     end
 
     test "detects collision with existing tile" do
-      board = Board.new() |> Board.put(5, 3, :dark)
       piece = %Piece{cells: {:dark, :dark, :dark, :dark}, col: 5, row: 3}
+
+      board =
+        Board.new()
+        |> Board.put(5, 3, :dark)
+
       assert Board.any_collision?(board, piece)
     end
 
     test "no collision on valid position" do
       piece = %Piece{cells: {:dark, :dark, :dark, :dark}, col: 5, row: 3}
-      refute Board.any_collision?(Board.new(), piece)
+      board = Board.new()
+
+      refute Board.any_collision?(board, piece)
     end
 
     test "allows piece above board (negative row)" do
       piece = %Piece{cells: {:dark, :dark, :dark, :dark}, col: 5, row: -1}
-      refute Board.any_collision?(Board.new(), piece)
+      board = Board.new()
+
+      refute Board.any_collision?(board, piece)
     end
   end
 
@@ -181,29 +205,85 @@ defmodule Eclipse.Game.BoardTest do
 
   describe "topped_out?/1" do
     test "returns true when tile in top row" do
-      board = Board.new() |> Board.put(5, 0, :dark)
+      board =
+        Board.new()
+        |> Board.put(5, 0, :dark)
+
       assert Board.topped_out?(board)
     end
 
     test "returns false when top row is empty" do
-      board = Board.new() |> Board.put(5, 5, :dark)
+      board =
+        Board.new()
+        |> Board.put(5, 5, :dark)
+
       refute Board.topped_out?(board)
     end
   end
 
   describe "has_marks?/1" do
     test "returns true when board contains marked cells" do
-      board = Board.new() |> Board.put(5, 5, {:marked, :dark})
+      board =
+        Board.new()
+        |> Board.put(5, 5, {:marked, :dark})
+
       assert Board.has_marks?(board)
     end
 
     test "returns false when no marked cells exist" do
-      board = Board.new() |> Board.put(5, 5, :dark)
+      board =
+        Board.new()
+        |> Board.put(5, 5, :dark)
+
       refute Board.has_marks?(board)
     end
 
     test "returns false on empty board" do
-      refute Board.has_marks?(Board.new())
+      board = Board.new()
+
+      refute Board.has_marks?(board)
+    end
+  end
+
+  describe "empty?/1" do
+    test "returns true for new board" do
+      board = Board.new()
+
+      assert Board.empty?(board)
+    end
+
+    test "returns false when board has cells" do
+      board =
+        Board.new()
+        |> Board.put(0, 0, :dark)
+
+      refute Board.empty?(board)
+    end
+  end
+
+  describe "single_color?/1" do
+    test "returns true when all cells are same color" do
+      board =
+        Board.new()
+        |> Board.put(0, 0, :dark)
+        |> Board.put(1, 1, :dark)
+        |> Board.put(2, 2, {:marked, :dark})
+
+      assert Board.single_color?(board)
+    end
+
+    test "returns false when cells are different colors" do
+      board =
+        Board.new()
+        |> Board.put(0, 0, :dark)
+        |> Board.put(1, 1, :light)
+
+      refute Board.single_color?(board)
+    end
+
+    test "returns true for empty board" do
+      # Empty board has zero colors, which is technically single-color ([]-> [] after uniq)
+      refute Board.single_color?(Board.new())
     end
   end
 end

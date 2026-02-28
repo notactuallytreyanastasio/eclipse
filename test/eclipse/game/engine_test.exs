@@ -18,21 +18,30 @@ defmodule Eclipse.Game.EngineTest do
 
   describe "start/1" do
     test "transitions to playing" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       assert state.phase == :playing
     end
   end
 
   describe "gravity_tick/1" do
     test "moves piece down one row" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       original_row = state.active_piece.row
       ticked = Engine.gravity_tick(state)
       assert ticked.active_piece.row == original_row + 1
     end
 
     test "locks piece when it hits bottom" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       piece = %Piece{cells: {:dark, :dark, :dark, :dark}, col: 5, row: 8}
       state = %{state | active_piece: piece}
 
@@ -43,11 +52,14 @@ defmodule Eclipse.Game.EngineTest do
     end
 
     test "detects game over when topped out" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
 
       # Fill entire board so gravity can't settle anything — board is full
       board =
-        Enum.reduce(0..23, state.board, fn col, b ->
+        0..23
+        |> Enum.reduce(state.board, fn col, b ->
           Enum.reduce(0..9, b, fn row, b2 ->
             Board.put(b2, col, row, if(rem(col + row, 2) == 0, do: :dark, else: :light))
           end)
@@ -63,21 +75,30 @@ defmodule Eclipse.Game.EngineTest do
 
   describe "move_left/1 and move_right/1" do
     test "moves piece left" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       original_col = state.active_piece.col
       moved = Engine.move_left(state)
       assert moved.active_piece.col == original_col - 1
     end
 
     test "moves piece right" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       original_col = state.active_piece.col
       moved = Engine.move_right(state)
       assert moved.active_piece.col == original_col + 1
     end
 
     test "does not move left past wall" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       piece = %{state.active_piece | col: 0}
       state = %{state | active_piece: piece}
       moved = Engine.move_left(state)
@@ -85,7 +106,10 @@ defmodule Eclipse.Game.EngineTest do
     end
 
     test "does not move right past wall" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       piece = %{state.active_piece | col: 22}
       state = %{state | active_piece: piece}
       moved = Engine.move_right(state)
@@ -95,7 +119,10 @@ defmodule Eclipse.Game.EngineTest do
 
   describe "rotate_cw/1" do
     test "rotates piece clockwise" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       piece = %Piece{cells: {:dark, :light, :light, :dark}, col: 11, row: 0}
       state = %{state | active_piece: piece}
       rotated = Engine.rotate_cw(state)
@@ -111,7 +138,10 @@ defmodule Eclipse.Game.EngineTest do
 
   describe "rotate_ccw/1" do
     test "rotates piece counter-clockwise" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       piece = %Piece{cells: {:dark, :light, :light, :dark}, col: 11, row: 0}
       state = %{state | active_piece: piece}
       rotated = Engine.rotate_ccw(state)
@@ -121,14 +151,20 @@ defmodule Eclipse.Game.EngineTest do
 
   describe "soft_drop/1" do
     test "moves piece down one row" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       original_row = state.active_piece.row
       dropped = Engine.soft_drop(state)
       assert dropped.active_piece.row == original_row + 1
     end
 
     test "locks piece when at bottom" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       piece = %Piece{cells: {:dark, :dark, :dark, :dark}, col: 5, row: 8}
       state = %{state | active_piece: piece}
 
@@ -145,7 +181,10 @@ defmodule Eclipse.Game.EngineTest do
 
   describe "hard_drop/1" do
     test "places piece at bottom and locks" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       piece = %Piece{cells: {:dark, :dark, :dark, :dark}, col: 5, row: 0}
       state = %{state | active_piece: piece}
 
@@ -171,7 +210,10 @@ defmodule Eclipse.Game.EngineTest do
         # rows 7,8 empty (gap from previous clear)
         |> Board.put(5, 9, :dark)
 
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       # Place a piece that will lock on col 10 (away from our test column)
       # so lock_piece triggers gravity across the whole board
       piece = %Piece{cells: {:dark, :light, :light, :dark}, col: 10, row: 8}
@@ -199,7 +241,10 @@ defmodule Eclipse.Game.EngineTest do
         # rows 4-8 empty (cleared by scanner)
         |> Board.put(3, 9, :dark)
 
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       piece = %Piece{cells: {:dark, :light, :light, :dark}, col: 12, row: 0}
       state = %{state | board: board, active_piece: piece}
 
@@ -218,14 +263,19 @@ defmodule Eclipse.Game.EngineTest do
 
   describe "scanner_tick/1" do
     test "advances scanner position" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
       original_pos = state.scanner.position
       ticked = Engine.scanner_tick(state)
       assert ticked.scanner.position > original_pos
     end
 
     test "clears marked tiles when scanner passes" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
 
       board =
         state.board
@@ -251,29 +301,36 @@ defmodule Eclipse.Game.EngineTest do
   end
 
   describe "level up" do
-    test "levels up when lines_cleared crosses threshold" do
-      state = Engine.new_game() |> Engine.start()
+    test "levels up when total_squares_cleared crosses threshold" do
+      state =
+        Engine.new_game()
+        |> Engine.start()
 
-      # Set up state just below level-up threshold (50 lines per level)
+      # Set up state just below level-up threshold (50 squares per level)
       board =
         state.board
         |> Board.put(0, 8, {:marked, :dark})
         |> Board.put(1, 8, {:marked, :dark})
         |> Board.put(0, 9, {:marked, :dark})
         |> Board.put(1, 9, {:marked, :dark})
+        # Keep non-marked tiles to avoid bonuses
+        |> Board.put(10, 9, :light)
+        |> Board.put(12, 9, :dark)
 
       scanner = %{state.scanner | position: 0.0, speed: 2.0}
-      state = %{state | board: board, scanner: scanner, lines_cleared: 48, level: 1}
+      state = %{state | board: board, scanner: scanner, total_squares_cleared: 46, level: 1}
 
       ticked = Engine.scanner_tick(state)
 
-      assert ticked.lines_cleared >= 50
+      assert ticked.total_squares_cleared >= 50
       assert ticked.level == 2
       assert ticked.gravity_interval < 1000
     end
 
     test "does not level up below threshold" do
-      state = Engine.new_game() |> Engine.start()
+      state =
+        Engine.new_game()
+        |> Engine.start()
 
       board =
         state.board
@@ -281,14 +338,103 @@ defmodule Eclipse.Game.EngineTest do
         |> Board.put(1, 8, {:marked, :dark})
         |> Board.put(0, 9, {:marked, :dark})
         |> Board.put(1, 9, {:marked, :dark})
+        # Keep non-marked tiles to avoid bonuses
+        |> Board.put(10, 9, :light)
+        |> Board.put(12, 9, :dark)
 
       scanner = %{state.scanner | position: 0.0, speed: 2.0}
-      state = %{state | board: board, scanner: scanner, lines_cleared: 0, level: 1}
+      state = %{state | board: board, scanner: scanner, total_squares_cleared: 0, level: 1}
 
       ticked = Engine.scanner_tick(state)
 
       assert ticked.level == 1
       assert ticked.gravity_interval == 1000
+    end
+  end
+
+  describe "combo scoring" do
+    test "score uses combo_multiplier instead of level" do
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
+      board =
+        state.board
+        |> Board.put(0, 8, {:marked, :dark})
+        |> Board.put(1, 8, {:marked, :dark})
+        |> Board.put(0, 9, {:marked, :dark})
+        |> Board.put(1, 9, {:marked, :dark})
+        # Keep non-marked tiles to avoid bonuses
+        |> Board.put(10, 9, :light)
+        |> Board.put(12, 9, :dark)
+
+      scanner = %{state.scanner | position: 0.0, speed: 2.0}
+      state = %{state | board: board, scanner: scanner, combo_multiplier: 3}
+
+      ticked = Engine.scanner_tick(state)
+
+      # 4 tiles * 10 * 3x multiplier = 120
+      assert ticked.score == 120
+    end
+
+    test "combo streak increments when sweep clears >= 4 tiles on wrap" do
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
+      # Set up marked tiles and a scanner that will wrap
+      board =
+        state.board
+        |> Board.put(23, 8, {:marked, :dark})
+        |> Board.put(23, 9, {:marked, :dark})
+        # Keep non-marked tiles to avoid bonuses
+        |> Board.put(10, 9, :light)
+        |> Board.put(12, 9, :dark)
+
+      # Scanner wraps: position 23.0, speed 2.0 → wraps past board_width 24
+      scanner = %{state.scanner | position: 23.0, speed: 2.0}
+      # Pre-set sweep_cleared to 3 so that clearing 2 more = 5 >= 4 threshold
+      state = %{state | board: board, scanner: scanner, sweep_cleared: 3}
+
+      ticked = Engine.scanner_tick(state)
+
+      # Scanner wrapped, sweep_cleared was 3 + 2 = 5 >= 4
+      assert ticked.combo_streak == 1
+      assert ticked.combo_multiplier == 2
+      # sweep_cleared resets after wrap
+      assert ticked.sweep_cleared == 0
+    end
+
+    test "combo resets when sweep clears < 4 tiles on wrap" do
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
+      # Scanner wraps with low sweep_cleared
+      scanner = %{state.scanner | position: 23.5, speed: 1.0}
+      state = %{state | scanner: scanner, sweep_cleared: 2, combo_streak: 2, combo_multiplier: 2}
+
+      ticked = Engine.scanner_tick(state)
+
+      # Wrapped with sweep_cleared 2 < 4 → reset
+      assert ticked.combo_streak == 0
+      assert ticked.combo_multiplier == 1
+      assert ticked.sweep_cleared == 0
+    end
+
+    test "combo multiplier caps at 4" do
+      state =
+        Engine.new_game()
+        |> Engine.start()
+
+      scanner = %{state.scanner | position: 23.5, speed: 1.0}
+      state = %{state | scanner: scanner, sweep_cleared: 10, combo_streak: 5, combo_multiplier: 4}
+
+      ticked = Engine.scanner_tick(state)
+
+      # streak goes to 6, but multiplier caps at 4
+      assert ticked.combo_streak == 6
+      assert ticked.combo_multiplier == 4
     end
   end
 

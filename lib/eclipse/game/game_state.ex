@@ -15,7 +15,10 @@ defmodule Eclipse.Game.GameState do
           scanner: Scanner.t(),
           score: non_neg_integer(),
           level: non_neg_integer(),
-          lines_cleared: non_neg_integer(),
+          total_squares_cleared: non_neg_integer(),
+          combo_multiplier: pos_integer(),
+          combo_streak: non_neg_integer(),
+          sweep_cleared: non_neg_integer(),
           phase: phase(),
           gravity_interval: pos_integer(),
           scanner_interval: pos_integer()
@@ -27,19 +30,24 @@ defmodule Eclipse.Game.GameState do
             scanner: nil,
             score: 0,
             level: 1,
-            lines_cleared: 0,
+            total_squares_cleared: 0,
+            combo_multiplier: 1,
+            combo_streak: 0,
+            sweep_cleared: 0,
             phase: :waiting,
             gravity_interval: 1000,
             scanner_interval: 50
 
+  @doc """
+  Create a new game state with default or custom options.
+  Prefer using the struct directly when you control all fields.
+  """
   @spec new(keyword()) :: t()
   def new(opts \\ []) do
-    board = Keyword.get(opts, :board, Board.new())
-
     %__MODULE__{
-      board: board,
+      board: Keyword.get(opts, :board, Board.new()),
       scanner: %Scanner{},
-      queue: for(_ <- 1..3, do: Piece.random()),
+      queue: [Piece.random(), Piece.random(), Piece.random()],
       phase: :waiting,
       gravity_interval: Keyword.get(opts, :gravity_interval, 1000),
       scanner_interval: Keyword.get(opts, :scanner_interval, 50)

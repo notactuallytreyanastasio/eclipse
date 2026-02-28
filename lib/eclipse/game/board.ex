@@ -22,9 +22,16 @@ defmodule Eclipse.Game.Board do
 
   defstruct cells: %{}, width: 24, height: 10
 
+  @doc """
+  Create a new board with the given dimensions.
+
+  This is a convenience function for tests and initialization.
+  When you control all fields, prefer using the struct directly:
+  `%Board{cells: %{}, width: 24, height: 10}`
+  """
   @spec new(pos_integer(), pos_integer()) :: t()
   def new(width \\ 24, height \\ 10) do
-    %__MODULE__{cells: %{}, width: width, height: height}
+    %__MODULE__{width: width, height: height}
   end
 
   @spec get(t(), non_neg_integer(), non_neg_integer()) :: cell()
@@ -34,14 +41,14 @@ defmodule Eclipse.Game.Board do
 
   @spec put(t(), non_neg_integer(), non_neg_integer(), cell()) :: t()
   def put(%__MODULE__{cells: cells} = board, col, row, value) do
-    cells =
+    new_cells =
       if is_nil(value) do
         Map.delete(cells, {col, row})
       else
         Map.put(cells, {col, row}, value)
       end
 
-    %{board | cells: cells}
+    %{board | cells: new_cells}
   end
 
   @spec place_piece(t(), Piece.t()) :: t()
@@ -63,16 +70,23 @@ defmodule Eclipse.Game.Board do
 
   @spec find_matches(t()) :: t()
   def find_matches(%__MODULE__{width: width, height: height} = board) do
-    marked_positions =
-      for col <- 0..(width - 2),
-          row <- 0..(height - 2),
-          match_at?(board, col, row),
-          pos <- [{col, row}, {col + 1, row}, {col, row + 1}, {col + 1, row + 1}],
-          into: MapSet.new() do
-        pos
-      end
+    board
+    |> find_marked_positions(width, height)
+    |> mark_positions(board)
+  end
 
-    Enum.reduce(marked_positions, board, fn {col, row}, acc ->
+  defp find_marked_positions(board, width, height) do
+    for col <- 0..(width - 2),
+        row <- 0..(height - 2),
+        match_at?(board, col, row),
+        pos <- [{col, row}, {col + 1, row}, {col, row + 1}, {col + 1, row + 1}],
+        into: MapSet.new() do
+      pos
+    end
+  end
+
+  defp mark_positions(positions, board) do
+    Enum.reduce(positions, board, fn {col, row}, acc ->
       case get(acc, col, row) do
         {:marked, _} -> acc
         color when color in [:dark, :light] -> put(acc, col, row, {:marked, color})
@@ -108,34 +122,37 @@ defmodule Eclipse.Game.Board do
   end
 
   defp apply_column_gravity(%__MODULE__{height: height} = board, col) do
-    tiles =
-      for row <- 0..(height - 1),
-          cell = get(board, col, row),
-          not is_nil(cell) do
-        cell
-      end
-
+    tiles = collect_column_tiles(board, col, height)
     empty_count = height - length(tiles)
+    new_cells = rebuild_column(board.cells, col, height, empty_count, tiles)
+    %{board | cells: new_cells}
+  end
 
-    cells =
-      Enum.reduce(0..(height - 1), board.cells, fn row, cells_acc ->
-        value = if row < empty_count, do: nil, else: Enum.at(tiles, row - empty_count)
+  defp collect_column_tiles(board, col, height) do
+    for row <- 0..(height - 1),
+        cell = get(board, col, row),
+        not is_nil(cell) do
+      cell
+    end
+  end
 
-        case value do
-          nil -> Map.delete(cells_acc, {col, row})
-          v -> Map.put(cells_acc, {col, row}, v)
-        end
-      end)
+  defp rebuild_column(cells, col, height, empty_count, tiles) do
+    Enum.reduce(0..(height - 1), cells, fn row, cells_acc ->
+      value = if row < empty_count, do: nil, else: Enum.at(tiles, row - empty_count)
 
-    %{board | cells: cells}
+      case value do
+        nil -> Map.delete(cells_acc, {col, row})
+        v -> Map.put(cells_acc, {col, row}, v)
+      end
+    end)
   end
 
   @spec clear_marked_in_range(t(), non_neg_integer(), non_neg_integer()) ::
           {t(), non_neg_integer()}
-  def clear_marked_in_range(%__MODULE__{} = board, from_col, to_col) do
-    positions = for col <- from_col..to_col//1, row <- 0..(board.height - 1), do: {col, row}
-
-    Enum.reduce(positions, {board, 0}, fn {col, row}, {b_acc, count} ->
+  def clear_marked_in_range(%__MODULE__{height: height} = board, from_col, to_col) do
+    from_col..to_col//1
+    |> Enum.flat_map(fn col -> Enum.map(0..(height - 1), &{col, &1}) end)
+    |> Enum.reduce({board, 0}, fn {col, row}, {b_acc, count} ->
       case get(b_acc, col, row) do
         {:marked, _} -> {put(b_acc, col, row, nil), count + 1}
         _ -> {b_acc, count}
@@ -156,5 +173,22 @@ defmodule Eclipse.Game.Board do
       {_pos, {:marked, _}} -> true
       _ -> false
     end)
+  end
+
+  @spec empty?(t()) :: boolean()
+  def empty?(%__MODULE__{cells: cells}) do
+    map_size(cells) == 0
+  end
+
+  @spec single_color?(t()) :: boolean()
+  def single_color?(%__MODULE__{cells: cells}) do
+    colors =
+      cells
+      |> Map.values()
+      |> Enum.map(&cell_color/1)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+
+    match?([_], colors)
   end
 end
