@@ -218,6 +218,12 @@ Nodes are auto-tagged with the current git branch. Configure in `.deciduous/conf
 2. Every action links to its decision?
 3. No dangling orphans (except root goals)?
 
+### Rebase Only -- No Merge Commits
+
+**ALWAYS** rebase. Never `git merge`. History must be linear.
+
+When integrating branches (including from subagent worktrees), use cherry-pick or rebase — not merge. If a merge commit exists, rewrite history to remove it before pushing.
+
 ### Git Staging -- CRITICAL
 
 **NEVER** use broad staging: `git add -A`, `git add .`, `git commit -am`, `git add *`.
