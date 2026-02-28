@@ -1,4 +1,4 @@
-.PHONY: help up down watch logs heal listen monitor graph setup migrate backup shell iex quality test format credo improve compile
+.PHONY: help up down watch logs heal listen monitor graph setup migrate backup shell iex quality test format credo improve compile dialyzer
 
 ELIXIRC_OPTS = --warnings-as-errors
 APP_CONTAINER = eclipse-app-1
@@ -68,6 +68,9 @@ format: ## Format the project
 credo: ## Run credo in strict mode
 	mix credo --strict
 
+dialyzer: ## Run dialyzer for static analysis
+	mix dialyzer
+
 improve: ## Run /improve-elixir via Claude (streaming output)
 	echo "run /improve-elixir on the project. Do NOT create branches, stage files, or commit. Only modify files. Log what you did to deciduous: 'deciduous add action \"Improve: <summary>\" -c 85' and 'deciduous add outcome \"<result>\" -c 90' linked to the action." | claude --dangerously-skip-permissions
 
@@ -82,6 +85,8 @@ quality: ## Compile, credo, test, improve-elixir, format (continues on failure)
 	[ $$credo_exit -ne 0 ] && failed=1; \
 	echo "==> Running tests..."; \
 	mix test || failed=1; \
+	echo "==> Running dialyzer..."; \
+	mix dialyzer || failed=1; \
 	echo "==> Finding changed/new files..."; \
 	changed_files=$$(git diff --name-only --diff-filter=ACMR HEAD -- '*.ex' '*.exs' '*.heex' 2>/dev/null; git ls-files --others --exclude-standard -- '*.ex' '*.exs' '*.heex' 2>/dev/null); \
 	if [ -n "$$changed_files" ]; then \
