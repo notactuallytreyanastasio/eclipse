@@ -4,22 +4,34 @@ Build the project and run the test suite.
 
 ## Instructions
 
-1. Run the full build and test cycle:
+1. Compile with warnings-as-errors, then run the full test suite:
    ```bash
-   cargo build --release && cargo test
+   mix compile --warnings-as-errors && mix test
    ```
 
-2. If tests fail, analyze the failures and explain:
-   - Which test failed
-   - What it was testing
-   - Likely cause of failure
+2. If compilation fails, analyze the errors:
+   - Which module failed
+   - The specific error (undefined function, type mismatch, syntax error)
    - Suggested fix
 
-3. If all tests pass, report success and any warnings from the build.
+3. If tests fail, analyze the failures:
+   - Which test failed and in which file
+   - What it was testing
+   - The assertion that failed (expected vs got)
+   - Likely root cause — trace the call chain from test to source
+   - Suggested fix (in source code, never in tests)
 
-4. If the user specifies a specific test pattern, run only those tests:
+4. If all tests pass, report success and any warnings from compilation.
+
+5. If the user specifies a specific test file or pattern:
    ```bash
-   cargo test <pattern>
+   mix test test/path/to/specific_test.exs
+   mix test --only tag_name
+   ```
+
+6. For previously failed tests:
+   ```bash
+   mix test --failed
    ```
 
 $ARGUMENTS

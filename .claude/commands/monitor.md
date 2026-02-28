@@ -12,7 +12,11 @@ Use the **Bash tool** with `run_in_background: true`:
 docker compose up --build -d 2>&1
 ```
 
-Wait for it to complete.
+Wait for it to complete. Verify the containers are healthy:
+
+```bash
+docker compose ps
+```
 
 ### Step 2: Start the file watcher
 
@@ -60,22 +64,42 @@ Use the **Task tool** with `subagent_type: "general-purpose"` and `run_in_backgr
 >    - **Error** (degraded): runtime errors, failed requests
 >    - **Warning**: one-off errors — wait for 3 occurrences in 60s before acting
 >
-> 4. **For Critical/Error — auto-heal:**
+> 4. **For Critical/Error — TDD healing cycle:**
+>
+>    **Phase 1: Observe**
 >    a. Log observation: `deciduous add observation "Listener detected: <error summary>" -c 50`
->    b. Read the stacktrace to find the source file and line
->    c. Read the source file to understand the code
->    d. Apply the fix — edit the file directly
->    e. Log the action: `deciduous add action "Auto-heal: <what>" -c 75 -f "file1.ex,file2.ex"` and link to the observation
->    f. Verify: `mix compile --warnings-as-errors && mix test`
->    g. No need to rebuild — `docker compose watch` will sync the fix automatically
->    h. Watch logs for 15 seconds to verify
->    i. Log outcome: `deciduous add outcome "Auto-healed: <summary>" -c 95` (or `"Auto-heal failed: <why>" -c 30`) and link to the action
+>
+>    **Phase 2: Debug (diagnose before fixing)**
+>    b. Parse the error — extract the exception type, message, and full stacktrace
+>    c. Read the crash site — the file:line at the top of the stacktrace. Read the FULL function body, not just the line
+>    d. Trace the call chain — for each caller in the stacktrace, read the calling function. Identify what arguments were passed and where the data shape diverged from what the code expected
+>    e. Check types and contracts — read `@type`, `@spec`, and `defstruct` for every module involved. Does the caller's output match the callee's input?
+>    f. Identify the root cause — the earliest point where the fix should go, which is often NOT the crash site
+>
+>    **Phase 3: Write a Failing Test (RED)**
+>    g. Find the test file that mirrors the source path (e.g., `lib/eclipse/game/board.ex` → `test/eclipse/game/board_test.exs`). Read it to match conventions
+>    h. Write a test that constructs the exact input from the stacktrace, calls the root cause function, and asserts correct behavior
+>    i. Run the test and confirm it FAILS: `mix test <test_file> --only line:<N>`
+>    j. If it passes, the reproduction is wrong — rewrite the test
+>
+>    **Phase 4: Fix the Source (GREEN)**
+>    k. Log the action: `deciduous add action "Auto-heal: <what and why>. Test added." -c 75 -f "file1.ex,test_file_test.exs"` and link to the observation
+>    l. Make the minimal source change that makes the failing test pass
+>    m. Run the new test again — it must pass now
+>    n. Run full suite: `mix compile --warnings-as-errors && mix test`
+>    o. No need to rebuild — `docker compose watch` will sync the fix automatically
+>    p. Watch logs for 15 seconds to verify the error is gone
+>
+>    **Phase 5: Record**
+>    q. Log outcome: `deciduous add outcome "Auto-healed: <summary>. Regression test added." -c 95` (or `"Auto-heal failed: <why>" -c 30`) and link to the action
 >
 > 5. **Rules:**
+>    - **Test before fixing** — never edit source without a failing test that reproduces the bug
+>    - **Debug before testing** — never write a test without tracing the call chain first
 >    - Never fix the same error more than twice — print `⚠ LISTENER: Could not auto-heal "<error>". Manual intervention needed.`
->    - Never modify test files to make tests pass
+>    - Never weaken or delete existing tests to make them pass
 >    - Never delete or weaken error handling
->    - Always verify with `mix compile --warnings-as-errors && mix test` before considering a fix done
+>    - Always run full suite (`mix compile --warnings-as-errors && mix test`) after the fix
 >    - Do NOT create branches, stage files, or commit. Only modify files.
 >    - Log every observation, action, and outcome to deciduous
 >
@@ -86,7 +110,7 @@ Pass the actual output file path from Step 3 into the prompt where `<output_file
 ### Step 5: Confirm to the user
 
 Tell the user:
-- Containers are up
+- Containers are up (show `docker compose ps` output)
 - File watcher is syncing (hot reload active)
 - Log listener is monitoring for errors
 - Provide task IDs so they can check output files

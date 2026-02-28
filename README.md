@@ -38,124 +38,194 @@ lib/eclipse_web/live/
 
 Game state lives in LiveView assigns. Two independent `Process.send_after` timer loops drive gravity and the scanner. The entire game engine is pure functions operating on plain structs — no GenServers, no side effects. This makes it testable, serializable, and ready to extract into a GenServer with PubSub broadcasting for multiplayer.
 
-## Development with Claude Code
+## Development Flow
 
-This project is designed for an agent-driven development workflow using Claude Code. The idea is to keep a primary Claude session for interactive work, then delegate the server and monitoring to background subagents.
+This project uses an agent-driven workflow with [Claude Code](https://claude.ai/claude-code). A primary session handles interactive work while background subagents run the server and monitor for errors. Every change is tracked in a [deciduous](https://github.com/durable-creative/deciduous) decision graph — institutional memory that survives across sessions, developers, and time.
 
-### The three-agent pattern
+Here's what the full flow looks like for a fresh user.
 
-**1. Your active session** — where you write code, run tests, and iterate.
+### 1. Start a Session
 
-**2. Server subagent** — runs the Docker containers in the background:
+Every session begins with context recovery:
+
+```
+/recover
+```
+
+This reads the deciduous decision graph and reconstructs what happened in prior sessions — what was built, what broke, what decisions were made and why. It also audits graph integrity, fixing any orphaned nodes. Without recovery, you're working blind.
+
+### 2. Launch the Subagents
+
+Run `/monitor` to spin up the three-agent pattern. This is one command, but it launches four background processes:
 
 ```
 /monitor
 ```
 
-or manually:
+Here's exactly what happens:
+
+**Process 1: Containers** — `docker compose up --build -d` runs as a background Bash task. Builds the Docker images if needed (app, postgres, graph viewer) and starts them in detached mode. The task completes once the containers are up and healthy.
+
+**Process 2: File watcher** — `docker compose watch` runs as a background Bash task. This is a long-running process that watches the host filesystem and syncs changes into the running container. It triggers inotify events inside Docker so Phoenix live reload picks up every file edit — whether from you, a subagent, or the auto-healer. **This must stay running.** If it dies, hot reload stops working.
+
+**Process 3: Log stream** — `docker compose logs -f --tail=0` runs as a background Bash task. Captures all container output to a file that the listener subagent polls. The `--tail=0` means it starts from now, not replaying history.
+
+**Process 4: Listener subagent** — A `general-purpose` Task agent launched with `run_in_background: true`. This is the brain. Every 10 seconds it reads the last 100 lines from the log stream output file and scans for error patterns:
+
+- `** (RuntimeError)`, `** (FunctionClauseError)` — Elixir exceptions
+- `CRASH REPORT`, `exited with` — OTP crashes
+- `(Postgrex.Error)`, `FATAL` — database errors
+- `== Compilation error` — compile failures
+- `502`, `503` — service unavailable
+
+Errors are classified by severity. Critical and Error trigger the debug-then-fix cycle immediately. Warnings are tracked and only escalated after 3 occurrences in 60 seconds.
+
+After `/monitor` completes, you get back the task IDs for all four processes. Your session is free — you continue writing code, running tests, reviewing. The subagents work in the background.
+
+To check on monitor status at any time, read the subagent output files or ask: "how's the monitor doing?"
+
+You can also launch the pieces manually:
 
 ```bash
-make up && make watch
+make up && make watch    # in one terminal
+make logs                # in another
+make listen              # or make monitor
 ```
 
-**3. Monitor subagent** — watches container logs and auto-heals errors:
+### 3. Start a Work Transaction
 
-The `/monitor` skill launches background subagents for the containers, file watcher (hot reload), and a log listener that continuously tails Docker logs, scans for error patterns (Elixir exceptions, OTP crashes, DB errors, compilation failures), and attempts to fix them automatically. Because `docker compose watch` is running, fixes sync into the container automatically — no rebuild needed. If it can't resolve an error after two attempts, it escalates to you.
-
-All observations, actions, and outcomes are logged to the [deciduous](https://github.com/durable-creative/deciduous) decision graph for traceability.
-
-### In practice
-
-Start a Claude Code session and run `/monitor`. This spins up background agents for the server and log watcher. You keep working in the foreground — writing features, running tests, reviewing code. When the server hits an error, the monitor detects it, fixes the source file, rebuilds the container, and logs what it did. You stay uninterrupted.
-
-### Available Make targets
-
-| Target | What it does |
-|--------|-------------|
-| `make up` | Build and start containers (`PORT=8080 make up` for custom port) |
-| `make watch` | Start file sync for hot reload (run after `make up`) |
-| `make down` | Stop everything |
-| `make logs` | Tail container logs |
-| `make graph` | Start the deciduous decision graph viewer |
-| `make setup` | Create database and run migrations (first time) |
-| `make migrate` | Run pending migrations |
-| `make backup` | Dump database to `backups/` |
-| `make iex` | IEx shell on the running app |
-| `make shell` | Bash shell inside the app container |
-| `make compile` | Compile with `--warnings-as-errors` |
-| `make test` | Compile + run test suite |
-| `make format` | Format the project |
-| `make credo` | Run credo in strict mode |
-| `make improve` | Run `/improve-elixir` via Claude |
-| `make quality` | Full pipeline: compile, credo, test, improve-elixir, format |
-| `make heal` | One-shot error diagnosis and fix via Claude |
-| `make listen` | Continuous error listener (takes over the session) |
-| `make monitor` | Background monitor (subagent, session stays free) |
-
-### Claude skills
-
-| Skill | Purpose |
-|-------|---------|
-| `/monitor` | Launch background server + log watcher subagents |
-| `/listen` | Continuous error listener (foreground) |
-| `/heal` | One-shot: diagnose and fix current Docker errors |
-| `/improve-elixir` | Systematic code quality improvements |
-| `/build-test` | Compile and run tests |
-| `/work` | Start a tracked work transaction with deciduous |
-| `/quality` | Full quality pipeline |
-
-## Self-Healing Infrastructure
-
-The Makefile, Docker setup, and Claude skills form a closed-loop system where the application monitors itself, fixes its own errors, and records every failure and recovery in a decision graph.
-
-### How it works
-
-The system has three layers:
-
-**1. Hot reload layer** — `docker compose watch` syncs file changes from the host into the running dev container, triggering Phoenix live reload via inotify. When a source file is edited — whether by a human or by the auto-healer — the change propagates into the container within milliseconds. No rebuild cycle, no restart. The app recompiles the changed module and the browser updates.
-
-**2. Error detection layer** — A background agent continuously tails `docker compose logs`, polling every 10 seconds. It pattern-matches against known error signatures:
-
-- Elixir exceptions (`** (RuntimeError)`, `** (FunctionClauseError)`)
-- OTP crashes (`CRASH REPORT`, `exited with`)
-- Database errors (`(Postgrex.Error)`, `FATAL`)
-- Compilation failures (`== Compilation error`)
-- HTTP errors (`502`, `503`)
-
-Errors are classified by severity. Critical (app down) and Error (degraded) trigger immediate auto-heal. Warnings are tracked and only escalated after 3 occurrences within 60 seconds.
-
-**3. Auto-heal layer** — When the listener detects a fixable error, it:
-
-1. Reads the stacktrace to locate the source file and line
-2. Reads the source to understand the context
-3. Edits the file with a fix
-4. Verifies locally with `mix compile --warnings-as-errors && mix test`
-5. The fix syncs into the container via the watch layer — no manual rebuild
-6. Monitors logs for 15 seconds to confirm the error is gone
-
-If the same error persists after two fix attempts, the system stops trying and alerts the developer. It never modifies test files to make tests pass, never weakens error handling to silence errors, and never retries the same fix.
-
-### The decision graph
-
-Every step is logged to [deciduous](https://github.com/durable-creative/deciduous), a decision graph that records the full history of what broke, what was tried, and what worked:
+**Every meaningful change starts with `/work`:**
 
 ```
-observation: "Listener detected: ArgumentError - secret_key_base too short"
-    │
-    ▼
-action: "Auto-heal: replaced SECRET_KEY_BASE with 128-char key"
-    │
-    ▼
-outcome: "Auto-healed: app now returns 200 OK, no errors in logs"
+/work "Add piece preview to sidebar"
 ```
 
-Each node carries confidence scores, associated files, and timestamps. Observations link to the actions that addressed them. Actions link to outcomes that verify them. Run `make graph` to view the full graph at `localhost:3000`.
+This creates a goal node in the decision graph *before* any code is written. The graph captures not just what changed but why. One `/work` = one logical change = one commit. Only trivial one-line typo fixes skip this.
 
-This isn't just logging — it's institutional memory. When a new session starts, `/recover` reads the graph and reconstructs context: what was built, what broke, what decisions were made and why. The graph survives across sessions, across developers, across time.
+If the ask involves multiple changes, that's multiple transactions:
+
+```
+/work "Fix tile contrast"        # goal -> actions -> outcome -> commit
+/work "Slow scanner speed 8x"    # separate goal -> actions -> outcome -> commit
+```
+
+The `/work` command also creates action nodes before each file edit and outcome nodes after committing. The Edit/Write hooks will block you if no recent action or goal node exists — this is intentional. It ensures every code change is traceable in the graph.
+
+### 4. Design Types First
+
+Before writing implementation, define the types. Types are the contract between modules — they make boundaries visible and composable. When the types are right, the implementation follows naturally.
+
+Start with `@type`, `@typedoc`, `defstruct`, and `@spec`:
+
+- `Eclipse.Game.Piece` defines `@type t` and `@type color` — the contracts other modules consume
+- `Eclipse.Game.Board` defines `@type cell` and `@type t` — exposing what a board IS
+- `Eclipse.Game.GameState` combines these into a top-level struct with `@type phase`
+- `Eclipse.Game.Engine` operates purely on these typed structs via `@spec`
+
+No `.new()` constructors. Elixir structs are data — construct them directly with `%Module{field: value}`. The `defstruct` defaults are the single source of truth.
+
+### 5. Run Quality Checks
+
+Before committing, always run the full quality pipeline:
+
+```bash
+make quality
+```
+
+This runs in order: compile (warnings-as-errors), credo (strict), tests, dialyzer, improve-elixir (on changed files only, fed credo output), then format. It continues through failures so you see all issues at once.
+
+### 6. Commit and Log
+
+Stage files **explicitly by name** — never `git add .` or `git add -A`:
+
+```bash
+git add lib/eclipse/game/engine.ex lib/eclipse_web/live/game_live.ex
+git commit -m "feat: add piece preview to sidebar"
+```
+
+**Rebase only.** No merge commits. History must be linear. When integrating branches, use cherry-pick or rebase.
+
+Immediately after committing — before doing anything else — log to deciduous:
+
+```bash
+deciduous add action "Implemented piece preview" -c 90 --commit HEAD \
+  -f "lib/eclipse/game/engine.ex,lib/eclipse_web/live/game_live.ex"
+deciduous link <goal_id> <action_id> -r "Implementation"
+```
+
+Then add the outcome node and link it back. Never batch this. Never "come back to it." The post-commit hook will remind you, but don't rely on reminders.
+
+### 7. Subagent Work in Worktrees
+
+When launching subagents in git worktrees, the subagent must log to deciduous itself. The main session cannot do it because deciduous auto-tags nodes with the current git branch — logging retroactively from a different branch breaks the graph.
+
+Every subagent prompt that involves commits must include:
+
+```
+After committing, log to deciduous immediately:
+  deciduous add action "What you did" -c 90 --commit HEAD -f "files,changed"
+  deciduous link <parent_id> <new_id> -r "reason"
+```
+
+Pass the parent node ID into the subagent prompt so it can link correctly. If the main session creates a goal node (e.g., node 79), tell the subagent: "Link your action to goal 79."
+
+## Debugging and Self-Healing
+
+The system uses **TDD-driven healing**. Whether you're debugging manually or the auto-healer is fixing a runtime error, the process is the same: diagnose root cause, write a failing test that reproduces it, then fix the source to make the test pass.
+
+### The /debug command
+
+When you hit an error — a stacktrace in logs, a compilation failure, a test failure — use `/debug`:
+
+```
+/debug ** (KeyError) key :color not found in: %Eclipse.Game.Piece{tiles: [...]}
+    (eclipse 0.1.0) lib/eclipse/game/board.ex:45: Eclipse.Game.Board.place_piece/3
+    (eclipse 0.1.0) lib/eclipse/game/engine.ex:23: Eclipse.Game.Engine.tick/2
+```
+
+`/debug` walks through a structured diagnosis, then drives the fix via TDD:
+
+1. **Parse the error** — extract the exception type, message, crash site, and full call chain
+2. **Read the crash site** — the full function body at the top of the stacktrace, plus its `@spec` and `@type`
+3. **Trace the call chain** — for each frame, read what arguments were passed and where the data shape diverged from what the code expected
+4. **Check types and contracts** — do the caller's output types match the callee's input types? Is a struct field nil where the code assumes it's present?
+5. **Identify root cause** — the earliest point where the fix should go, usually NOT the crash site but 1-3 frames down
+6. **Write a failing test (RED)** — before touching source, write a test that constructs the exact input from the stacktrace, calls the root cause function, and asserts correct behavior. Run it, confirm it fails.
+7. **Fix the source (GREEN)** — make the minimal change that makes the failing test pass. Run the full suite to check for regressions.
+
+The key insight: the crash site is the symptom, not the disease. A `KeyError` on line 45 means something upstream constructed the wrong data shape. The test proves you understand the bug. The fix proves the test is right.
+
+### How auto-healing uses TDD
+
+The listener subagent follows the same protocol. When it detects an error in the Docker logs:
+
+```
+1. Parse    → extract exception, stacktrace, call chain
+2. Read     → open crash site, read full function body + types
+3. Trace    → walk each frame, find where data diverged
+4. Diagnose → identify root cause (not symptom)
+5. Test     → write failing test reproducing the exact bug (RED)
+6. Fix      → minimal source change to make the test pass (GREEN)
+7. Verify   → mix compile --warnings-as-errors && mix test (full suite)
+8. Watch    → monitor logs 15 seconds to confirm
+```
+
+Every auto-heal leaves behind a regression test. If the same bug ever recurs — in a refactor, a dependency update, a new feature — the test catches it immediately. The test suite grows more precise with every error the system encounters.
+
+If the fix doesn't resolve the error, it re-debugs with new information and writes a new test targeting the revised understanding. After two failed attempts, it escalates to you rather than guessing.
+
+### The healing modes
+
+| Command | Mode | When to use |
+|---------|------|-------------|
+| `/debug <stacktrace>` | Interactive | You have an error and want to understand it. Diagnoses root cause, writes a failing test, proposes fix, waits for you |
+| `/heal` | One-shot | App is broken right now. Reads logs, debugs, writes test, fixes, verifies, reports back |
+| `/listen` | Continuous | Background watcher. Polls logs every 10s, auto-debugs and auto-fixes via TDD as errors appear |
+| `/monitor` | Full stack | Launches containers + watcher + listener. Everything automated, session stays free |
+
+They build on each other: `/monitor` spawns a `/listen`-style agent, which uses `/debug`-style TDD for every error it encounters.
 
 ### The feedback loop
-
-The three layers create a feedback loop:
 
 ```
 code change ──► watch syncs to container ──► Phoenix recompiles
@@ -166,24 +236,97 @@ code change ──► watch syncs to container ──► Phoenix recompiles
                                              no           yes
                                               │           │
                                               ▼           ▼
-                                          keep watching   auto-heal ──► deciduous logs it
-                                                          │
-                                                          ▼
-                                                   edit source file
-                                                          │
-                                                          ▼
-                                                   watch syncs to container ...
+                                          keep watching   debug: parse → trace → diagnose
+                                                                         │
+                                                                         ▼
+                                                               write failing test (RED)
+                                                                         │
+                                                                         ▼
+                                                            fix source to pass test (GREEN)
+                                                                         │
+                                                                         ▼
+                                                          verify: compile + full test suite
+                                                                         │
+                                                                         ▼
+                                                              deciduous logs everything
+                                                                         │
+                                                                         ▼
+                                                              watch syncs fix to container ...
 ```
 
-The developer works in one terminal. The system heals itself in the background. The graph records everything. When the developer comes back — or a new session starts — the full story is there.
+## The Decision Graph
 
-## Code Quality
+The decision graph is the backbone of this workflow. It records every goal, option, decision, action, and outcome — not just what happened, but why.
+
+### Node flow
+
+```
+goal -> options -> decision -> actions -> outcomes
+```
+
+- Goals lead to options (possible approaches)
+- Options lead to a decision (choosing one)
+- Decisions lead to actions (implementation)
+- Actions lead to outcomes (results)
+- Observations attach anywhere
+- Goals never skip to decisions — options must come first
+
+### Rules
+
+Log in real-time, not retroactively. Before you act, log what you're about to do. After it resolves, log the outcome. Connect every node to its parent immediately. Root goals are the only valid orphans.
+
+### Viewing the graph
 
 ```bash
-make quality
+make graph    # serves at localhost:3000
 ```
 
-Runs in order: compile (warnings-as-errors), credo (strict), tests, improve-elixir (on changed files only, fed credo output), format. Continues through failures so you see all issues at once.
+Each node carries confidence scores, associated files, and timestamps. Observations link to the actions that addressed them. Actions link to outcomes that verify them.
+
+When a new session starts, `/recover` reads this graph and reconstructs full context. The graph survives across sessions, across developers, across time.
+
+## Reference
+
+### Make targets
+
+| Target | What it does |
+|--------|-------------|
+| `make up` | Build and start containers (`PORT=8080 make up` for custom port) |
+| `make watch` | Start file sync for hot reload (run after `make up`) |
+| `make down` | Stop everything |
+| `make logs` | Tail container logs |
+| `make graph` | Start the deciduous decision graph viewer (`GRAPH_PORT=3001 make graph`) |
+| `make setup` | Create database and run migrations (first time) |
+| `make migrate` | Run pending migrations |
+| `make backup` | Dump database to `backups/` |
+| `make iex` | IEx shell on the running app |
+| `make shell` | Bash shell inside the app container |
+| `make compile` | Compile with `--warnings-as-errors` |
+| `make test` | Compile + run test suite |
+| `make format` | Format the project |
+| `make credo` | Run credo in strict mode |
+| `make dialyzer` | Run dialyzer for static analysis |
+| `make improve` | Run `/improve-elixir` via Claude |
+| `make quality` | Full pipeline: compile, credo, test, dialyzer, improve-elixir, format |
+| `make heal` | One-shot error diagnosis and fix via Claude |
+| `make listen` | Continuous error listener (takes over the session) |
+| `make monitor` | Background monitor (subagent, session stays free) |
+
+### Claude skills
+
+| Skill | Purpose |
+|-------|---------|
+| `/recover` | Rebuild context from decision graph on session start |
+| `/work` | Start a tracked work transaction with deciduous |
+| `/monitor` | Launch background server + watcher + listener subagents |
+| `/listen` | Continuous error listener (foreground) |
+| `/heal` | One-shot: diagnose and fix current Docker errors |
+| `/debug` | Structured diagnosis: parse stacktrace, trace call chain, find root cause |
+| `/build-test` | Compile and run tests |
+| `/improve-elixir` | Systematic code quality improvements |
+| `/decision` | Manage decision graph nodes and edges |
+| `/document` | Generate docs for a file or directory |
+| `/sync-graph` | Export graph to GitHub Pages |
 
 ## Docker
 
