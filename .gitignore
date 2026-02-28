@@ -1,0 +1,4 @@
+# Deciduous database (local)
+.deciduous/
+deps
+_build
