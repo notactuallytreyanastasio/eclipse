@@ -1,5 +1,69 @@
 [
   {
+    "hash": "5478cf2f10336173473579e5829b621f4fce460b",
+    "short_hash": "5478cf2",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T21:12:08-05:00",
+    "message": "refactor: use Phoenix.PubSub for timer messaging\n\nReplaces direct process messaging (Process.send_after) with Phoenix.PubSub\nfor cleaner architecture and better ownership semantics.\n\nChanges:\n- Each LiveView session gets unique session ID on mount\n- Subscribes to session-scoped PubSub topics for timers\n  (game:{session_id}:gravity, :scanner, :move)\n- Timers now broadcast to topics instead of sending direct messages\n- Maintains backward compatibility with tests (handles both old :atom\n  messages and new PubSub messages)\n- Cleaner separation of concerns and more testable\n\nBenefits:\n- Better ownership semantics - each session owns its topics\n- More decoupled from LiveView process internals\n- Easier to test timer behavior\n- Follows Phoenix architectural patterns\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 1
+  },
+  {
+    "hash": "291c00f7690fdcdc0061f2b9f319546902db7830",
+    "short_hash": "291c00f",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T21:11:16-05:00",
+    "message": "feat: add horizontal movement acceleration for pieces\n\nImplements Lumines-style acceleration where holding left/right causes\nthe piece to move faster and faster. The piece starts at 150ms intervals\nand accelerates to 30ms (very fast) as the key continues to be held.\n\nTechnical details:\n- Tracks held keys in MapSet to handle multiple simultaneous keys\n- Uses repeating timer that decreases interval on each tick\n- Accelerates by 15ms per tick (configurable via @move_acceleration)\n- Resets acceleration when keys are released\n- Adds keyup event handling to detect key releases\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 1
+  },
+  {
+    "hash": "cfd64b58d41a9b1758ccaf717bf8437161c24677",
+    "short_hash": "cfd64b5",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T10:42:17-05:00",
+    "message": "feat: add level progress counter to HUD\n\nAdded a \"PROGRESS XX/50\" indicator to the game HUD showing how many\nsquares have been cleared toward the next level. Progress resets to 0\nwhen leveling up.\n\nThe counter displays as \"PROGRESS 00/50\" to \"PROGRESS 49/50\" using the\nsame monospace formatting as the score and level displays.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+    "files_changed": 2
+  },
+  {
+    "hash": "3c6e9a62d6156b9e3bf40cb3a6158685ba581bc3",
+    "short_hash": "3c6e9a6",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T10:18:39-05:00",
+    "message": "fix: prevent empty board bonus in score accumulation test\n\nFixed test case to match the pattern used in other scoring tests: add\nnon-marked tiles to avoid triggering the 10,000-point empty board bonus.\nThe test verifies basic score accumulation, not bonus scoring.\n\nAlso refactored bonus scoring logic to use cond instead of nested ifs,\nwhich eliminates dialyzer pattern match warnings and makes the mutual\nexclusivity of bonuses more explicit.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>",
+    "files_changed": 2
+  },
+  {
+    "hash": "8e7477f3bd760b24f7a375817689ec93eb97eeac",
+    "short_hash": "8e7477f",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T02:21:54-05:00",
+    "message": "add Lumines-style combo scoring with multiplier system\n\nTrack sweep_cleared, combo_streak, combo_multiplier (1-4x) in\nGameState. Scanner.advance now returns wrapped? boolean. On scanner\nwrap: if sweep_cleared >= 4, increment combo streak; else reset to 1x.\nScore = cleared_count * 10 * combo_multiplier. Board-clear bonus 10K,\nsingle-color bonus 1K. Renamed lines_cleared → total_squares_cleared.\nHUD shows combo multiplier when > 1x.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 10
+  },
+  {
+    "hash": "952802673fcaf86786ae15b33dd5552a665b306c",
+    "short_hash": "9528026",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T02:09:50-05:00",
+    "message": "extract function components into GameComponents module\n\nMoves game_board, game_hud, queue_panel, game_controls, start_overlay,\nand game_over_overlay into EclipseWeb.GameComponents as function\ncomponents with typed attrs. GameLive render is now a clean composition\nof components. All 111 tests pass unchanged.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 2
+  },
+  {
+    "hash": "0c1f3f9564e11169af7fadb87ce9ac13532351a6",
+    "short_hash": "0c1f3f9",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T02:08:08-05:00",
+    "message": "full-page background cohesion: hide navbar, match game bg\n\nbody:has(#eclipse-game) hides the Phoenix navbar, removes main padding\nand max-width constraints, and sets body background to --gb-lightest.\nThe game page now feels like a full-screen DMG experience.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 1
+  },
+  {
+    "hash": "ec91dce248b9fd1cfaa29bca83d742b2f1ddcc14",
+    "short_hash": "ec91dce",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T02:06:53-05:00",
+    "message": "apply gravity on piece lock so floating tiles settle immediately\n\nBoard.apply_gravity() now runs inside lock_piece/1 after place_piece,\nbefore find_matches. Tiles never float after a piece lands — they\nsettle to fill gaps from previous clears in the same frame.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 3
+  },
+  {
     "hash": "f88185c7a6f2d55afbd09182d17ab954848ab6f6",
     "short_hash": "f88185c",
     "author": "Robert Grayson",
@@ -8,16 +72,24 @@
     "files_changed": 1
   },
   {
-    "hash": "7549f84d715c1e6eb7be2351c8103371b8550e8b",
-    "short_hash": "7549f84",
+    "hash": "4e6eab5937df5b3b3cf6ff22033328f7e1165781",
+    "short_hash": "4e6eab5",
+    "author": "Robert Grayson",
+    "date": "2026-02-28T01:18:13-05:00",
+    "message": "codify rebase-only rule: no merge commits, linear history always\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+    "files_changed": 1
+  },
+  {
+    "hash": "1910aeac0f5fd9fb85b7d75e0c728a818be087bc",
+    "short_hash": "1910aea",
     "author": "Robert Grayson",
     "date": "2026-02-28T01:17:05-05:00",
     "message": "codify deciduous rules: subagents must log from their own branch\n\nSubagents in git worktrees MUST log to deciduous themselves — the\nmain session can't do it retroactively because branch tagging will\nbe wrong. Also strengthened the immediate-after-commit rule.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
     "files_changed": 1
   },
   {
-    "hash": "1910aeac0f5fd9fb85b7d75e0c728a818be087bc",
-    "short_hash": "1910aea",
+    "hash": "7549f84d715c1e6eb7be2351c8103371b8550e8b",
+    "short_hash": "7549f84",
     "author": "Robert Grayson",
     "date": "2026-02-28T01:17:05-05:00",
     "message": "codify deciduous rules: subagents must log from their own branch\n\nSubagents in git worktrees MUST log to deciduous themselves — the\nmain session can't do it retroactively because branch tagging will\nbe wrong. Also strengthened the immediate-after-commit rule.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
